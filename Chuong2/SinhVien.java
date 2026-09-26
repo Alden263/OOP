@@ -23,6 +23,14 @@ public class SinhVien {
         this.diemmon2=diemmon2;
         this.diemmon3=diemmon3;
     }
+
+    public String getMasv() {
+        return masv;
+    }
+    public String getHoten(){
+        return hoten;
+    }
+
     public void nhap(Scanner sc){
         System.out.println("Nhập mã sinh viên ");
         masv=sc.nextLine();
