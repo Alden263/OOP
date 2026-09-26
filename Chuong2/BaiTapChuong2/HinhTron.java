@@ -1,4 +1,4 @@
-package Chuong2;
+package Chuong2.BaiTapChuong2;
 
 import java.util.Scanner;
 
