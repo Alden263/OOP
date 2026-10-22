@@ -1,0 +1,4 @@
+Lý Thuyết;CS001;Trí tuệ nhân tạo;3;8.399999999999999
+Lý Thuyết;CS002;Lý Thuyết Đồ Thị;4;9.7
+Thực Hành;COD001;Lập trinhg hướng đối tượng;4;9.0
+Đồ Án;CDA001;Lập trình Python;4;8.9

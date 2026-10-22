@@ -24,11 +24,52 @@ public class SinhVien {
         this.diemmon3=diemmon3;
     }
 
+    public void setMasv(String masv) {
+
+        this.masv = masv;
+    }
     public String getMasv() {
         return masv;
     }
+
+    public void setHoten(String hoten) {
+        this.hoten = hoten;
+    }
+
     public String getHoten(){
         return hoten;
+    }
+
+    public void setLophoc(String lophoc) {
+        this.lophoc = lophoc;
+    }
+
+    public String getLophoc() {
+        return lophoc;
+    }
+
+    public void setDiemmon1(double diemmon1) {
+        this.diemmon1 = diemmon1;
+    }
+
+    public double getDiemmon1() {
+        return diemmon1;
+    }
+
+    public void setDiemmon2(double diemmon2) {
+        this.diemmon2 = diemmon2;
+    }
+
+    public double getDiemmon2() {
+        return diemmon2;
+    }
+
+    public void setDiemmon3(double diemmon3) {
+        this.diemmon3 = diemmon3;
+    }
+
+    public double getDiemmon3() {
+        return diemmon3;
     }
 
     public void nhap(Scanner sc){
@@ -67,5 +108,6 @@ public class SinhVien {
          }
          return "Yếu";
     }
+
 
 }
