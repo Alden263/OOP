@@ -1,4 +1,6 @@
-package PACKAGE_NAME;
-
-public class IQuanLy {
+public interface IQuanLy {
+    void them();
+    void xoa(String ma);
+    void timKiem(String ma);
+    void hienThi();
 }
