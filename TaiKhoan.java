@@ -3,6 +3,9 @@ public class TaiKhoan{
     private String tenDangNhap;
     private String matKhau;
     private QuyenHan quyenHan;
+    public final static TaiKhoan tk_Nhanvien = new TaiKhoan("Nhan vien","123",QuyenHan.Nhan_vien);
+    public final static TaiKhoan tk_Quanly = new  TaiKhoan("Quan ly","123",QuyenHan.Quan_ly);
+    public final static TaiKhoan tk_Admin = new TaiKhoan("Admin","123",QuyenHan.Admin);
     public TaiKhoan(){
         tenDangNhap = "";
         matKhau = "";
