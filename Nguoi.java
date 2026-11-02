@@ -1,4 +1,4 @@
-package dean;
+
 public abstract class Nguoi{
     protected String ma;
     protected String hoTen;

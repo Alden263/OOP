@@ -1,5 +1,5 @@
-package dean;
-public class KhachHang extends Nguoi{
+
+public class KhachHang extends Nguoi {
     private String diaChi;
     public KhachHang(){
         super();

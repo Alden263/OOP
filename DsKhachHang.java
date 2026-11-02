@@ -1,4 +1,4 @@
-package dean;
+
 import java.util.ArrayList;
 public class DsKhachHang{
     private ArrayList<KhachHang> danhSach;
