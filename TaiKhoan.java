@@ -1,0 +1,49 @@
+package dean;
+public class TaiKhoan{
+    private String tenDangNhap;
+    private String matKhau;
+    private QuyenHan quyenHan;
+    public final static TaiKhoan tk_Nhanvien = new TaiKhoan("Nhan vien","123",QuyenHan.Nhan_vien);
+    public final static TaiKhoan tk_Quanly = new  TaiKhoan("Quan ly","123",QuyenHan.Quan_ly);
+    public final static TaiKhoan tk_Admin = new TaiKhoan("Admin","123",QuyenHan.Admin);
+    public TaiKhoan(){
+        tenDangNhap = "";
+        matKhau = "";
+        quyenHan = null;
+    }
+    public TaiKhoan(String tenDangNhap, String matKhau, QuyenHan quyenHan){
+        this.tenDangNhap = tenDangNhap;
+        this.matKhau = matKhau;
+        this.quyenHan = quyenHan;
+    }
+    public String getTenDangNhap(){
+        return tenDangNhap;
+    }
+    public void setTenDangNhap(String tenDangNhap){
+        this.tenDangNhap = tenDangNhap;
+    }
+    public String getMatKhau(){
+        return matKhau;
+    }
+    public void setMatKhau(String matKhau){
+        this.matKhau = matKhau;
+    }
+    public QuyenHan getQuyenHan(){
+        return quyenHan;
+    }
+    public void setQuyenHan(QuyenHan quyenHan){
+        this.quyenHan = quyenHan;
+    }
+    public boolean dangNhap(String tenDangNhap, String matKhau){
+        return this.tenDangNhap.equals(tenDangNhap) && this.matKhau.equals(matKhau);
+    }
+    public void doiMatKhau(String matKhauMoi){
+        this.matKhau = matKhauMoi;
+    }
+    public void hienThi() {
+        System.out.println("Ten dang nhap: " + tenDangNhap);
+        if (quyenHan != null) {
+            System.out.println("Quyen: " + quyenHan.getTenQuyen());
+        }
+    }
+}
