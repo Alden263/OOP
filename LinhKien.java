@@ -38,6 +38,7 @@ public class LinhKien extends SanPham {
         return getDonGia();
     }
     public void nhap(Scanner sc){
+        this.maSP = SanPham.sinhMa("LK");
         super.nhap(sc);
         System.out.println("Nhập loại linh kiện");
         loaiLinhKien=sc.nextLine();

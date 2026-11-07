@@ -5,6 +5,19 @@ public abstract class SanPham {
     protected String tenSP;
     protected double donGia;
     protected int soLuong;
+    private static int demLT = 0;
+    private static int demPC = 0;
+    private static int demLK = 0;
+    public static String sinhMa(String loai) {
+        if (loai.equalsIgnoreCase("LT")) {
+            return String.format("LT%03d", ++demLT);
+        } else if (loai.equalsIgnoreCase("PC")) {
+            return String.format("PC%03d", ++demPC);
+        } else if (loai.equalsIgnoreCase("LK")) {
+            return String.format("LK%03d", ++demLK);
+        }
+        return String.format("SP%03d", ++demLT);
+    }
 
     public String getMaSP() {
         return maSP;

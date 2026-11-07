@@ -51,6 +51,7 @@ public class Laptop  extends SanPham{
     }
     @Override
     public void nhap(Scanner sc){
+        this.maSP = SanPham.sinhMa("LT");
         super.nhap(sc);
         System.out.println("Nhập thông tin CPU");
         CPU=sc.nextLine();

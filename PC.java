@@ -58,6 +58,7 @@ public class PC extends SanPham{
         System.out.println("  [PC] CPU: " + CPU + " | RAM: " + RAM + "GB | SSD: " + dungLuongSSD + "GB");
     }
     public void nhap(Scanner sc){
+        this.maSP = SanPham.sinhMa("PC");
         super.nhap(sc);
         System.out.println("Nhập thông tin CPU");
         CPU=sc.nextLine();
