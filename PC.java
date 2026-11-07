@@ -43,9 +43,10 @@ public class PC extends SanPham{
         this.RAM=0;
         this.dungLuongSSD=0;
     }
-    public PC(String maSP, String tenSP, double donGia, int soLuong, String CPU, int RAM, int dungLuongSSD){
+    public PC(String maSP, String tenSP, double donGia, int soLuong, String CPU,String GPU, int RAM, int dungLuongSSD){
         super(maSP,tenSP,donGia,soLuong);
         this.CPU=CPU;
+        this.GPU=GPU;
         this.RAM=RAM;
         this.dungLuongSSD=dungLuongSSD;
     }
