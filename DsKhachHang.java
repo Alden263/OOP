@@ -62,4 +62,25 @@ public class DsKhachHang{
         }
         return null;
     }
+    public boolean xoaKhachHang(String ma) {
+        for (int i = 0; i < soLuong; i++) {
+            if (danhSach[i].getMa().equalsIgnoreCase(ma)) {
+
+                // Dời các phần tử phía sau lên trước
+                for (int j = i; j < soLuong - 1; j++) {
+                    danhSach[j] = danhSach[j + 1];
+                }
+
+                // Xóa phần tử cuối cùng
+                danhSach[soLuong - 1] = null;
+                soLuong--;
+
+                System.out.println("Xóa khách hàng thành công!");
+                return true;
+            }
+        }
+
+        System.out.println("Không tìm thấy khách hàng có mã: " + ma);
+        return false;
+    }
 }
