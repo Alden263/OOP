@@ -1,4 +1,4 @@
-package dean;
+
 class LuongException extends Exception {
     public LuongException(String message){
         super(message);

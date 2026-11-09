@@ -1,22 +1,24 @@
-package dean;
+
 import java.util.ArrayList;
 public class DsNhanVien{
     private ArrayList<NhanVien> danhSach;
     public DsNhanVien(){
         danhSach = new ArrayList<>();
+        docFile();
     }
     public void themNhanVien(NhanVien nv){
         danhSach.add(nv);
+        ghiFile();
     }
     public void xoaNhanVien(NhanVien nv){
         danhSach.remove(nv);
+        ghiFile();
     }
     public void xoaNhanVienTheoMa(String maNV){
-        for (NhanVien nv : danhSach){
-            if (nv.getMa().equals(maNV)){
-                danhSach.remove(nv);
-                break;
-            }
+        NhanVien nv = timKiemTheoMa(maNV);
+        if (nv != null) {
+            danhSach.remove(nv);
+            ghiFile();
         }
     }
     public NhanVien timKiemTheoMa(String maNV){
@@ -40,6 +42,39 @@ public class DsNhanVien{
         for (NhanVien nv : danhSach){
             nv.hienThi();
             System.out.println("--------------------");
+        }
+    }
+    public void ghiFile(){
+        String noiDung = "";
+        for (NhanVien nv : danhSach){
+            noiDung += nv.getMa() + ";"
+                    + nv.getHoTen() + ";"
+                    + nv.getSoDienThoai() + ";"
+                    + nv.getChucVu() + ";"
+                    + nv.getLuong() + "\n";
+        }
+        XuLyFile.ghiFile("NhanVien.txt", noiDung);
+    }
+    // doc danh sach nhan vien tu file
+    public void docFile(){
+        danhSach.clear();
+        String noiDung = XuLyFile.docFile("NhanVien.txt");
+        String[] dong = noiDung.split("\n");
+        for (String s : dong) {
+            if (!s.trim().isEmpty()) {
+                String[] tt = s.split(";");
+                if (tt.length == 5) {
+                    NhanVien nv = new NhanVien(
+                        tt[0],
+                        tt[1],
+                        tt[2],
+                        tt[3],
+                        Double.parseDouble(tt[4]),
+                        null
+                    );
+                    danhSach.add(nv);
+                }
+            }
         }
     }
 }

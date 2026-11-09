@@ -1,4 +1,4 @@
-package dean;
+
 public class QuyenHan{
     private String maQuyen;
     private String tenQuyen;
