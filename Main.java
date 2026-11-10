@@ -4,8 +4,8 @@ public class Main {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         QuanLyCuaHang ql = new QuanLyCuaHang("CỬA HÀNG MÁY TÍNH");
-        DanhSachNhaCungCap dsNCC = new DanhSachNhaCungCap();
-        DanhSachPhieuNhap dsPN = new DanhSachPhieuNhap(dsNCC);
+        DanhSachNhaCungCap dsNCC = new DanhSachNhaCungCap(sc);
+        DanhSachPhieuNhap dsPN = new DanhSachPhieuNhap(sc, dsNCC);
         int chon;
         do {
             System.out.println("\n===== ỨNG DỤNG QUẢN LÝ CỬA HÀNG MÁY TÍNH =====");
@@ -39,11 +39,11 @@ public class Main {
                     break;
 
                 case 4:
-                    dsNCC.menu(sc);
+                    dsNCC.menu();
                     break;
 
                 case 5:
-                    dsPN.menu(sc);
+                    dsPN.menu();
                     break;
 
                 case 0:

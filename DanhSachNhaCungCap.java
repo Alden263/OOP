@@ -2,10 +2,15 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-public class DanhSachNhaCungCap implements ghiDocFile {
+public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
     private static final String FILE_NCC = "NhaCungCap.txt";
 
     private ArrayList<NhaCungCap> dsNCC = new ArrayList<>();
+    private Scanner sc; // dung chung Scanner voi Main, khong tao Scanner moi
+
+    public DanhSachNhaCungCap(Scanner sc) {
+        this.sc = sc;
+    }
 
     public boolean laRong() {
         return dsNCC.isEmpty();
@@ -30,7 +35,56 @@ public class DanhSachNhaCungCap implements ghiDocFile {
         return String.format("NCC%03d", max + 1);
     }
 
-    // them 1 nha cung cap, tra ve false neu null hoac trung ma
+    // ===== 4 ham cua interface IQuanLy =====
+
+    // nhap thong tin tu ban phim roi them vao danh sach
+    @Override
+    public void them() {
+        String ma = sinhMa();
+        System.out.println("Ma NCC (tu sinh): " + ma);
+        String ten = NhapTuBanPhim.docChuoi(sc, "Ten NCC", null);
+        String diaChi = NhapTuBanPhim.docChuoi(sc, "Dia chi", null);
+        String sdt = NhapTuBanPhim.docSoDienThoai(sc, "So dien thoai", null);
+        if (them(new NhaCungCap(ma, ten, diaChi, sdt))) {
+            System.out.println("Them nha cung cap thanh cong!");
+        }
+    }
+
+    @Override
+    public void xoa(String ma) {
+        NhaCungCap ncc = timTheoMa(ma);
+        if (ncc == null) {
+            System.out.println("Khong tim thay NCC co ma: " + ma);
+            return;
+        }
+        dsNCC.remove(ncc);
+        System.out.println("Xoa thanh cong!");
+    }
+
+    @Override
+    public void timKiem(String ma) {
+        NhaCungCap ncc = timTheoMa(ma);
+        if (ncc == null) {
+            System.out.println("Khong tim thay NCC co ma: " + ma);
+        } else {
+            System.out.println(ncc);
+        }
+    }
+
+    @Override
+    public void hienThi() {
+        if (dsNCC.isEmpty()) {
+            System.out.println("Danh sach nha cung cap dang trong.");
+            return;
+        }
+        for (int i = 0; i < dsNCC.size(); i++) {
+            System.out.println((i + 1) + ". " + dsNCC.get(i));
+        }
+    }
+
+    // ===== cac ham them ngoai interface =====
+
+    // nap chong (overload) voi them(): them 1 NCC co san, tra ve false neu null hoac trung ma
     public boolean them(NhaCungCap ncc) {
         if (ncc == null) {
             return false;
@@ -43,61 +97,22 @@ public class DanhSachNhaCungCap implements ghiDocFile {
         return true;
     }
 
-    // nhap thong tin tu ban phim roi them vao danh sach
-    public void nhapVaThem(Scanner sc) {
-        String ma = sinhMa();
-        System.out.println("Ma NCC (tu sinh): " + ma);
-        String ten = NhapTuBanPhim.docChuoi(sc, "Ten NCC", null);
-        String diaChi = NhapTuBanPhim.docChuoi(sc, "Dia chi", null);
-        String sdt = NhapTuBanPhim.docSoDienThoai(sc, "So dien thoai", null);
-        if (them(new NhaCungCap(ma, ten, diaChi, sdt))) {
-            System.out.println("Them nha cung cap thanh cong!");
-        }
-    }
-
-    public boolean sua(String ma, Scanner sc) {
+    public void sua(String ma) {
         NhaCungCap ncc = timTheoMa(ma);
         if (ncc == null) {
             System.out.println("Khong tim thay NCC co ma: " + ma);
-            return false;
+            return;
         }
         System.out.println("--- SUA NHA CUNG CAP " + ncc.getMaNCC() + " ---");
         ncc.setTenNCC(NhapTuBanPhim.docChuoi(sc, "Ten moi", ncc.getTenNCC()));
         ncc.setDiaChi(NhapTuBanPhim.docChuoi(sc, "Dia chi moi", ncc.getDiaChi()));
         ncc.setSoDienThoai(NhapTuBanPhim.docSoDienThoai(sc, "SDT moi", ncc.getSoDienThoai()));
         System.out.println("Cap nhat thanh cong!");
-        return true;
     }
 
-    public boolean xoa(String ma) {
-        NhaCungCap ncc = timTheoMa(ma);
-        if (ncc == null) {
-            return false;
-        }
-        dsNCC.remove(ncc);
-        return true;
-    }
-
-    public void timKiem(String ma) {
-        NhaCungCap ncc = timTheoMa(ma);
-        if (ncc == null) {
-            System.out.println("Khong tim thay NCC co ma: " + ma);
-        } else {
-            System.out.println(ncc);
-        }
-    }
-
-    public void hienThi() {
-        if (dsNCC.isEmpty()) {
-            System.out.println("Danh sach nha cung cap dang trong.");
-            return;
-        }
-        for (int i = 0; i < dsNCC.size(); i++) {
-            System.out.println((i + 1) + ". " + dsNCC.get(i));
-        }
-    }
-
+    // ===== doc / ghi file (interface ghiDocFile) =====
     // moi dong trong file: maNCC;tenNCC;diaChi;soDienThoai
+
     @Override
     public void ghiFile(String duongDan) {
         String path = (duongDan != null && !duongDan.isEmpty()) ? duongDan : FILE_NCC;
@@ -139,8 +154,15 @@ public class DanhSachNhaCungCap implements ghiDocFile {
         }
     }
 
+    // ===== menu =====
+
+    private String hoiMa(String cauHoi) {
+        System.out.print(cauHoi + ": ");
+        return sc.nextLine().trim();
+    }
+
     // menu quan ly nha cung cap, Main chi can goi ham nay
-    public void menu(Scanner sc) {
+    public void menu() {
         int chon;
         do {
             System.out.println("\n===== QUAN LY NHA CUNG CAP =====");
@@ -157,21 +179,13 @@ public class DanhSachNhaCungCap implements ghiDocFile {
             if (chon == 1) {
                 hienThi();
             } else if (chon == 2) {
-                nhapVaThem(sc);
+                them();
             } else if (chon == 3) {
-                System.out.print("Nhap ma NCC can sua: ");
-                sua(sc.nextLine().trim(), sc);
+                sua(hoiMa("Nhap ma NCC can sua"));
             } else if (chon == 4) {
-                System.out.print("Nhap ma NCC can xoa: ");
-                String ma = sc.nextLine().trim();
-                if (xoa(ma)) {
-                    System.out.println("Xoa thanh cong!");
-                } else {
-                    System.out.println("Khong tim thay NCC co ma: " + ma);
-                }
+                xoa(hoiMa("Nhap ma NCC can xoa"));
             } else if (chon == 5) {
-                System.out.print("Nhap ma NCC can tim: ");
-                timKiem(sc.nextLine().trim());
+                timKiem(hoiMa("Nhap ma NCC can tim"));
             } else if (chon == 6) {
                 docFile(FILE_NCC);
             } else if (chon == 7) {
