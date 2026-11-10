@@ -249,6 +249,12 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
             System.out.println("Phieu " + ph.getMaPN() + " khong co chi tiet " + maCT);
             return;
         }
+        // phieu phai con it nhat 1 dong chi tiet (giong luc lap phieu)
+        if (ph.getDsChiTiet().size() <= 1) {
+            System.out.println("Khong the xoa: phieu phai co it nhat 1 chi tiet. "
+                    + "Muon bo thi hay xoa ca phieu " + ph.getMaPN() + "!");
+            return;
+        }
         ph.getDsChiTiet().remove(ct);
         System.out.println("Xoa thanh cong!");
     }
