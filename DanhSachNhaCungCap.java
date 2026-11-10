@@ -7,9 +7,15 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
 
     private ArrayList<NhaCungCap> dsNCC = new ArrayList<>();
     private Scanner sc; // dung chung Scanner voi Main, khong tao Scanner moi
+    private DanhSachPhieuNhap dsPhieuNhap; // de biet NCC nao dang co phieu nhap, co the null
 
     public DanhSachNhaCungCap(Scanner sc) {
         this.sc = sc;
+    }
+
+    // DanhSachPhieuNhap tu goi ham nay trong constructor cua no
+    public void setDsPhieuNhap(DanhSachPhieuNhap dsPhieuNhap) {
+        this.dsPhieuNhap = dsPhieuNhap;
     }
 
     public boolean laRong() {
@@ -55,6 +61,12 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
         NhaCungCap ncc = timTheoMa(ma);
         if (ncc == null) {
             System.out.println("Khong tim thay NCC co ma: " + ma);
+            return;
+        }
+        // NCC dang co phieu nhap thi khong cho xoa, tranh phieu tro toi NCC khong ton tai
+        if (dsPhieuNhap != null && dsPhieuNhap.coPhieuCuaNCC(ncc.getMaNCC())) {
+            System.out.println("Khong the xoa: NCC " + ncc.getMaNCC()
+                    + " dang co phieu nhap. Hay xoa cac phieu nhap do truoc!");
             return;
         }
         dsNCC.remove(ncc);

@@ -12,6 +12,17 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
     public DanhSachPhieuNhap(Scanner sc, DanhSachNhaCungCap dsNCC) {
         this.sc = sc;
         this.dsNCC = dsNCC;
+        dsNCC.setDsPhieuNhap(this); // de dsNCC biet NCC nao dang co phieu khi xoa
+    }
+
+    // co phieu nhap nao cua NCC nay khong
+    public boolean coPhieuCuaNCC(String maNCC) {
+        for (PhieuNhap ph : dsPhieu) {
+            if (ph.getMaNCC().equalsIgnoreCase(maNCC)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ===== tim kiem =====
