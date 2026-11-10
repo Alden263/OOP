@@ -1,11 +1,14 @@
 import java.io.*;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
     private static final String FILE_PHIEU_NHAP = "PhieuNhap.txt";
 
-    private ArrayList<PhieuNhap> dsPhieu = new ArrayList<>();
+    private static final int SUC_CHUA_BAN_DAU = 10;
+
+    private PhieuNhap[] ds = new PhieuNhap[SUC_CHUA_BAN_DAU]; // mang theo so do lop
+    private int soLuong = 0;                                  // so phieu dang co trong mang
     private DanhSachNhaCungCap dsNCC; // de kiem tra ma NCC co ton tai khi lap phieu
     private Scanner sc;               // dung chung Scanner voi Main, khong tao Scanner moi
 
@@ -17,7 +20,8 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
 
     // co phieu nhap nao cua NCC nay khong
     public boolean coPhieuCuaNCC(String maNCC) {
-        for (PhieuNhap ph : dsPhieu) {
+        for (int i = 0; i < soLuong; i++) {
+            PhieuNhap ph = ds[i];
             if (ph.getMaNCC().equalsIgnoreCase(maNCC)) {
                 return true;
             }
@@ -29,7 +33,8 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
 
     // tim phieu theo ma, khong thay thi tra ve null
     public PhieuNhap timTheoMa(String ma) {
-        for (PhieuNhap ph : dsPhieu) {
+        for (int i = 0; i < soLuong; i++) {
+            PhieuNhap ph = ds[i];
             if (ph.getMaPN().equalsIgnoreCase(ma)) {
                 return ph;
             }
@@ -51,7 +56,8 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
 
     public String sinhMaPN() {
         int max = 0;
-        for (PhieuNhap ph : dsPhieu) {
+        for (int i = 0; i < soLuong; i++) {
+            PhieuNhap ph = ds[i];
             max = Math.max(max, NhapTuBanPhim.soCuoi(ph.getMaPN(), "PN"));
         }
         return String.format("PN%03d", max + 1);
@@ -60,7 +66,8 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
     // ma chi tiet danh so chung cho tat ca phieu
     private String sinhMaCT() {
         int max = 0;
-        for (PhieuNhap ph : dsPhieu) {
+        for (int i = 0; i < soLuong; i++) {
+            PhieuNhap ph = ds[i];
             for (ChiTietPhieuNhap ct : ph.getDsChiTiet()) {
                 max = Math.max(max, NhapTuBanPhim.soCuoi(ct.getMaCTPN(), "CT"));
             }
@@ -71,7 +78,8 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
     // ma nhap lieu cung danh so chung
     private String sinhMaNL() {
         int max = 0;
-        for (PhieuNhap ph : dsPhieu) {
+        for (int i = 0; i < soLuong; i++) {
+            PhieuNhap ph = ds[i];
             for (ChiTietPhieuNhap ct : ph.getDsChiTiet()) {
                 max = Math.max(max, NhapTuBanPhim.soCuoi(ct.getMaNhapLieu(), "NL"));
             }
@@ -111,7 +119,16 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
             System.out.println("Khong tim thay phieu nhap co ma: " + maPN);
             return;
         }
-        dsPhieu.remove(ph);
+        // tim vi tri cua phieu roi don cac phan tu phia sau len 1 o
+        int viTri = 0;
+        while (ds[viTri] != ph) {
+            viTri++;
+        }
+        for (int i = viTri; i < soLuong - 1; i++) {
+            ds[i] = ds[i + 1];
+        }
+        soLuong--;
+        ds[soLuong] = null;
         System.out.println("Xoa thanh cong!");
     }
 
@@ -127,11 +144,12 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
 
     @Override
     public void hienThi() {
-        if (dsPhieu.isEmpty()) {
+        if (soLuong == 0) {
             System.out.println("Danh sach phieu nhap dang trong.");
             return;
         }
-        for (PhieuNhap ph : dsPhieu) {
+        for (int i = 0; i < soLuong; i++) {
+            PhieuNhap ph = ds[i];
             ph.hienThi();
             System.out.println("--------------------");
         }
@@ -153,7 +171,12 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
             System.out.println("Nha cung cap " + ph.getMaNCC() + " khong ton tai!");
             return false;
         }
-        dsPhieu.add(ph);
+        // mang day thi noi rong gap doi
+        if (soLuong == ds.length) {
+            ds = Arrays.copyOf(ds, ds.length * 2);
+        }
+        ds[soLuong] = ph;
+        soLuong++;
         return true;
     }
 
@@ -185,7 +208,8 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
 
     public void timTheoNCC(String maNCC) {
         boolean timThay = false;
-        for (PhieuNhap ph : dsPhieu) {
+        for (int i = 0; i < soLuong; i++) {
+            PhieuNhap ph = ds[i];
             if (ph.getMaNCC().equalsIgnoreCase(maNCC)) {
                 ph.hienThi();
                 System.out.println("--------------------");
@@ -268,7 +292,8 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
     public void ghiFile(String duongDan) {
         String path = (duongDan != null && !duongDan.isEmpty()) ? duongDan : FILE_PHIEU_NHAP;
         try (PrintWriter pw = new PrintWriter(new FileWriter(path))) {
-            for (PhieuNhap ph : dsPhieu) {
+            for (int i = 0; i < soLuong; i++) {
+                PhieuNhap ph = ds[i];
                 pw.println("PN;" + ph.getMaPN() + ";" + ph.getNgayNhap() + ";"
                         + ph.getMaNCC() + ";" + ph.getMaNV());
                 for (ChiTietPhieuNhap ct : ph.getDsChiTiet()) {
@@ -277,7 +302,7 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
                             + ";" + nl.getMaSP() + ";" + nl.getSoLuongNhap() + ";" + nl.getGiaNhap());
                 }
             }
-            System.out.println("Ghi " + dsPhieu.size() + " phieu nhap vao file " + path + " thanh cong!");
+            System.out.println("Ghi " + soLuong + " phieu nhap vao file " + path + " thanh cong!");
         } catch (IOException e) {
             System.out.println("Loi khi ghi file: " + e.getMessage());
         }
@@ -291,7 +316,9 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
             System.out.println("File " + path + " khong ton tai!");
             return;
         }
-        dsPhieu.clear(); // xoa danh sach cu truoc khi nap tu file
+        // xoa danh sach cu truoc khi nap tu file
+        ds = new PhieuNhap[SUC_CHUA_BAN_DAU];
+        soLuong = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(f))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -322,7 +349,7 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
                     System.out.println("Bo qua dong bi loi: " + line);
                 }
             }
-            System.out.println("Doc file " + path + " thanh cong! So phieu nap: " + dsPhieu.size());
+            System.out.println("Doc file " + path + " thanh cong! So phieu nap: " + soLuong);
         } catch (IOException e) {
             System.out.println("Loi khi doc file: " + e.getMessage());
         }

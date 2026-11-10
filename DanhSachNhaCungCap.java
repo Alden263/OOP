@@ -1,11 +1,14 @@
 import java.io.*;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
     private static final String FILE_NCC = "NhaCungCap.txt";
 
-    private ArrayList<NhaCungCap> dsNCC = new ArrayList<>();
+    private static final int SUC_CHUA_BAN_DAU = 10;
+
+    private NhaCungCap[] ds = new NhaCungCap[SUC_CHUA_BAN_DAU]; // mang theo so do lop
+    private int soLuong = 0;                                    // so NCC dang co trong mang
     private Scanner sc; // dung chung Scanner voi Main, khong tao Scanner moi
     private DanhSachPhieuNhap dsPhieuNhap; // de biet NCC nao dang co phieu nhap, co the null
 
@@ -19,14 +22,14 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
     }
 
     public boolean laRong() {
-        return dsNCC.isEmpty();
+        return soLuong == 0;
     }
 
     // tim theo ma, khong thay thi tra ve null
     public NhaCungCap timTheoMa(String ma) {
-        for (NhaCungCap ncc : dsNCC) {
-            if (ncc.getMaNCC().equalsIgnoreCase(ma)) {
-                return ncc;
+        for (int i = 0; i < soLuong; i++) {
+            if (ds[i].getMaNCC().equalsIgnoreCase(ma)) {
+                return ds[i];
             }
         }
         return null;
@@ -35,8 +38,8 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
     // sinh ma tu dong: lay so lon nhat dang co + 1 -> NCC001, NCC002...
     public String sinhMa() {
         int max = 0;
-        for (NhaCungCap ncc : dsNCC) {
-            max = Math.max(max, NhapTuBanPhim.soCuoi(ncc.getMaNCC(), "NCC"));
+        for (int i = 0; i < soLuong; i++) {
+            max = Math.max(max, NhapTuBanPhim.soCuoi(ds[i].getMaNCC(), "NCC"));
         }
         return String.format("NCC%03d", max + 1);
     }
@@ -69,7 +72,16 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
                     + " dang co phieu nhap. Hay xoa cac phieu nhap do truoc!");
             return;
         }
-        dsNCC.remove(ncc);
+        // tim vi tri cua NCC roi don cac phan tu phia sau len 1 o
+        int viTri = 0;
+        while (ds[viTri] != ncc) {
+            viTri++;
+        }
+        for (int i = viTri; i < soLuong - 1; i++) {
+            ds[i] = ds[i + 1];
+        }
+        soLuong--;
+        ds[soLuong] = null;
         System.out.println("Xoa thanh cong!");
     }
 
@@ -85,12 +97,12 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
 
     @Override
     public void hienThi() {
-        if (dsNCC.isEmpty()) {
+        if (soLuong == 0) {
             System.out.println("Danh sach nha cung cap dang trong.");
             return;
         }
-        for (int i = 0; i < dsNCC.size(); i++) {
-            System.out.println((i + 1) + ". " + dsNCC.get(i));
+        for (int i = 0; i < soLuong; i++) {
+            System.out.println((i + 1) + ". " + ds[i]);
         }
     }
 
@@ -105,7 +117,12 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
             System.out.println("Ma NCC " + ncc.getMaNCC() + " da ton tai!");
             return false;
         }
-        dsNCC.add(ncc);
+        // mang day thi noi rong gap doi
+        if (soLuong == ds.length) {
+            ds = Arrays.copyOf(ds, ds.length * 2);
+        }
+        ds[soLuong] = ncc;
+        soLuong++;
         return true;
     }
 
@@ -129,11 +146,12 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
     public void ghiFile(String duongDan) {
         String path = (duongDan != null && !duongDan.isEmpty()) ? duongDan : FILE_NCC;
         try (PrintWriter pw = new PrintWriter(new FileWriter(path))) {
-            for (NhaCungCap ncc : dsNCC) {
+            for (int i = 0; i < soLuong; i++) {
+                NhaCungCap ncc = ds[i];
                 pw.println(ncc.getMaNCC() + ";" + ncc.getTenNCC() + ";"
                         + ncc.getDiaChi() + ";" + ncc.getSoDienThoai());
             }
-            System.out.println("Ghi " + dsNCC.size() + " nha cung cap vao file " + path + " thanh cong!");
+            System.out.println("Ghi " + soLuong + " nha cung cap vao file " + path + " thanh cong!");
         } catch (IOException e) {
             System.out.println("Loi khi ghi file: " + e.getMessage());
         }
@@ -147,7 +165,9 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
             System.out.println("File " + path + " khong ton tai!");
             return;
         }
-        dsNCC.clear(); // xoa danh sach cu truoc khi nap tu file
+        // xoa danh sach cu truoc khi nap tu file
+        ds = new NhaCungCap[SUC_CHUA_BAN_DAU];
+        soLuong = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(f))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -160,7 +180,7 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
                 }
                 them(new NhaCungCap(p[0], p[1], p[2], p[3]));
             }
-            System.out.println("Doc file " + path + " thanh cong! So NCC nap: " + dsNCC.size());
+            System.out.println("Doc file " + path + " thanh cong! So NCC nap: " + soLuong);
         } catch (IOException e) {
             System.out.println("Loi khi doc file: " + e.getMessage());
         }
