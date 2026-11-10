@@ -296,12 +296,19 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
                 try {
                     if (p[0].equals("PN") && p.length >= 5) {
                         // dong phieu: tao phieu (chua co chi tiet)
-                        if (timTheoMa(p[1]) == null) {
-                            dsPhieu.add(new PhieuNhap(p[1], p[2], p[3], p[4]));
+                        // them() tu kiem tra trung ma va NCC co ton tai khong
+                        if (!them(new PhieuNhap(p[1], p[2], p[3], p[4]))) {
+                            System.out.println("Bo qua phieu " + p[1]
+                                    + " (neu chua doc file nha cung cap thi hay doc truoc).");
                         }
                     } else if (p[0].equals("CT") && p.length >= 7) {
                         // dong chi tiet: gan vao phieu co ma p[2]
                         PhieuNhap ph = timTheoMa(p[2]);
+                        if (ph == null) {
+                            // phieu cua dong nay da bi bo qua o tren
+                            System.out.println("Bo qua chi tiet " + p[1] + " vi khong co phieu " + p[2]);
+                            continue;
+                        }
                         NhapLieu nl = new NhapLieu(p[3], p[4], Integer.parseInt(p[5]), Double.parseDouble(p[6]));
                         ph.themChiTiet(new ChiTietPhieuNhap(p[1], p[2], nl));
                     }
