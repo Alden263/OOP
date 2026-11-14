@@ -1,4 +1,4 @@
-package dean;
+
 class MaException extends Exception{
     public MaException(String message){
         super(message);
