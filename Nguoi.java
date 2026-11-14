@@ -47,7 +47,7 @@ public abstract class Nguoi{
     }
     public void setSoDienThoai(String soDienThoai) throws soDienThoaiException{
         if (soDienThoai == null || soDienThoai.trim().isEmpty()){
-            throw new MaException("Số điện thoại không được để trống!");
+            throw new soDienThoaiException("Số điện thoại không được để trống!");
         }
         if(!soDienThoai.matches("\\d{10}")){
             throw new soDienThoaiException("Số điện thoại không hợp lệ");
