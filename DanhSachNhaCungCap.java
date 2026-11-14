@@ -7,16 +7,16 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
 
     private static final int SUC_CHUA_BAN_DAU = 10;
 
-    private NhaCungCap[] ds = new NhaCungCap[SUC_CHUA_BAN_DAU]; // mang theo so do lop
-    private int soLuong = 0;                                    // so NCC dang co trong mang
-    private Scanner sc; // dung chung Scanner voi Main, khong tao Scanner moi
-    private DanhSachPhieuNhap dsPhieuNhap; // de biet NCC nao dang co phieu nhap, co the null
+    private NhaCungCap[] ds = new NhaCungCap[SUC_CHUA_BAN_DAU]; // mảng theo số đồ lớp
+    private int soLuong = 0;                                    // số NCC đang có trong mảng
+    private Scanner sc; // dùng chung Scanner với Main, không tạo Scanner mới
+    private DanhSachPhieuNhap dsPhieuNhap; // để biết NCC nào đang có phiếu nhập, có thể null
 
     public DanhSachNhaCungCap(Scanner sc) {
         this.sc = sc;
     }
 
-    // DanhSachPhieuNhap tu goi ham nay trong constructor cua no
+    // DanhSachPhieuNhap tự gọi hàm này trong constructor của nó
     public void setDsPhieuNhap(DanhSachPhieuNhap dsPhieuNhap) {
         this.dsPhieuNhap = dsPhieuNhap;
     }
@@ -25,7 +25,7 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
         return soLuong == 0;
     }
 
-    // tim theo ma, khong thay thi tra ve null
+    // tìm theo mã, không thấy thì trả về null
     public NhaCungCap timTheoMa(String ma) {
         for (int i = 0; i < soLuong; i++) {
             if (ds[i].getMaNCC().equalsIgnoreCase(ma)) {
@@ -35,7 +35,7 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
         return null;
     }
 
-    // sinh ma tu dong: lay so lon nhat dang co + 1 -> NCC001, NCC002...
+    // sinh mã tự động: lấy số lớn nhất đang có + 1 -> NCC001, NCC002...
     public String sinhMa() {
         int max = 0;
         for (int i = 0; i < soLuong; i++) {
@@ -44,11 +44,10 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
         return String.format("NCC%03d", max + 1);
     }
 
-    // ===== 4 ham cua interface IQuanLy =====
+    // ===== 5 HÀM TUÂN THỦ CHUẨN GIAO TIẾP (INTERFACE) IQuanLy =====
 
-    // nhap thong tin tu ban phim roi them vao danh sach
     @Override
-    public void them() {
+    public void them(Scanner sc) {
         String ma = sinhMa();
         System.out.println("Ma NCC (tu sinh): " + ma);
         String ten = NhapTuBanPhim.docChuoi(sc, "Ten NCC", null);
@@ -60,21 +59,35 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
     }
 
     @Override
-    public void xoa(String ma) {
+    public void sua(String ma, Scanner sc) {
         NhaCungCap ncc = timTheoMa(ma);
         if (ncc == null) {
             System.out.println("Khong tim thay NCC co ma: " + ma);
             return;
         }
-        // NCC dang co phieu nhap thi khong cho xoa, tranh phieu tro toi NCC khong ton tai
+        System.out.println("--- SUA NHA CUNG CAP " + ncc.getMaNCC() + " ---");
+        ncc.setTenNCC(NhapTuBanPhim.docChuoi(sc, "Ten moi", ncc.getTenNCC()));
+        ncc.setDiaChi(NhapTuBanPhim.docChuoi(sc, "Dia chi moi", ncc.getDiaChi()));
+        ncc.setSoDienThoai(NhapTuBanPhim.docSoDienThoai(sc, "SDT moi", ncc.getSoDienThoai()));
+        System.out.println("Cap nhat thanh cong!");
+    }
+
+    @Override
+    public boolean xoa(String ma) {
+        NhaCungCap ncc = timTheoMa(ma);
+        if (ncc == null) {
+            System.out.println("Khong tim thay NCC co ma: " + ma);
+            return false;
+        }
+        // NCC đang có phiếu nhập thì không cho xóa, tránh phiếu trỏ tới NCC không tồn tại
         if (dsPhieuNhap != null && dsPhieuNhap.coPhieuCuaNCC(ncc.getMaNCC())) {
             System.out.println("Khong the xoa: NCC " + ncc.getMaNCC()
                     + " dang co phieu nhap. Hay xoa cac phieu nhap do truoc!");
-            return;
+            return false;
         }
-        // tim vi tri cua NCC roi don cac phan tu phia sau len 1 o
+        // tìm vị trí của NCC rồi dồn các phần tử phía sau lên 1 ô
         int viTri = 0;
-        while (ds[viTri] != ncc) {
+        while (viTri < soLuong && ds[viTri] != ncc) {
             viTri++;
         }
         for (int i = viTri; i < soLuong - 1; i++) {
@@ -83,10 +96,13 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
         soLuong--;
         ds[soLuong] = null;
         System.out.println("Xoa thanh cong!");
+        return true;
     }
 
     @Override
-    public void timKiem(String ma) {
+    public void timKiem(Scanner sc) {
+        System.out.print("Nhap ma NCC can tim: ");
+        String ma = sc.nextLine().trim();
         NhaCungCap ncc = timTheoMa(ma);
         if (ncc == null) {
             System.out.println("Khong tim thay NCC co ma: " + ma);
@@ -106,9 +122,9 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
         }
     }
 
-    // ===== cac ham them ngoai interface =====
+    // ===== CÁC HÀM BỔ TRỢ NGOÀI INTERFACE =====
 
-    // nap chong (overload) voi them(): them 1 NCC co san, tra ve false neu null hoac trung ma
+    // nạp chồng (overload) với them(Scanner sc): thêm 1 NCC có sẵn, trả về false nếu null hoặc trùng mã
     public boolean them(NhaCungCap ncc) {
         if (ncc == null) {
             return false;
@@ -117,7 +133,7 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
             System.out.println("Ma NCC " + ncc.getMaNCC() + " da ton tai!");
             return false;
         }
-        // mang day thi noi rong gap doi
+        // mảng đầy thì nới rộng gấp đôi
         if (soLuong == ds.length) {
             ds = Arrays.copyOf(ds, ds.length * 2);
         }
@@ -126,21 +142,8 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
         return true;
     }
 
-    public void sua(String ma) {
-        NhaCungCap ncc = timTheoMa(ma);
-        if (ncc == null) {
-            System.out.println("Khong tim thay NCC co ma: " + ma);
-            return;
-        }
-        System.out.println("--- SUA NHA CUNG CAP " + ncc.getMaNCC() + " ---");
-        ncc.setTenNCC(NhapTuBanPhim.docChuoi(sc, "Ten moi", ncc.getTenNCC()));
-        ncc.setDiaChi(NhapTuBanPhim.docChuoi(sc, "Dia chi moi", ncc.getDiaChi()));
-        ncc.setSoDienThoai(NhapTuBanPhim.docSoDienThoai(sc, "SDT moi", ncc.getSoDienThoai()));
-        System.out.println("Cap nhat thanh cong!");
-    }
-
-    // ===== doc / ghi file (interface ghiDocFile) =====
-    // moi dong trong file: maNCC;tenNCC;diaChi;soDienThoai
+    // ===== ĐỌC / GHI FILE (interface ghiDocFile) =====
+    // mỗi dòng trong file: maNCC;tenNCC;diaChi;soDienThoai
 
     @Override
     public void ghiFile(String duongDan) {
@@ -165,7 +168,7 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
             System.out.println("File " + path + " khong ton tai!");
             return;
         }
-        // xoa danh sach cu truoc khi nap tu file
+        // xóa danh sách cũ trước khi nạp từ file
         ds = new NhaCungCap[SUC_CHUA_BAN_DAU];
         soLuong = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(f))) {
@@ -176,24 +179,24 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
                 }
                 String[] p = line.split(";");
                 if (p.length < 4) {
-                    continue; // dong thieu du lieu thi bo qua
+                    continue; // dòng thiếu dữ liệu thì bỏ qua
                 }
                 them(new NhaCungCap(p[0], p[1], p[2], p[3]));
             }
             System.out.println("Doc file " + path + " thanh cong! So NCC nap: " + soLuong);
         } catch (IOException e) {
-            System.out.println("Loi khi doc file: " + e.getMessage());
+            System.out.println("Loi khi đọc file: " + e.getMessage());
         }
     }
 
-    // ===== menu =====
+    // ===== MENU =====
 
     private String hoiMa(String cauHoi) {
         System.out.print(cauHoi + ": ");
         return sc.nextLine().trim();
     }
 
-    // menu quan ly nha cung cap, Main chi can goi ham nay
+    // menu quản lý nhà cung cấp, Main chỉ cần gọi hàm này
     public void menu() {
         int chon;
         do {
@@ -211,13 +214,13 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
             if (chon == 1) {
                 hienThi();
             } else if (chon == 2) {
-                them();
+                them(sc);
             } else if (chon == 3) {
-                sua(hoiMa("Nhap ma NCC can sua"));
+                sua(hoiMa("Nhap ma NCC can sua"), sc);
             } else if (chon == 4) {
                 xoa(hoiMa("Nhap ma NCC can xoa"));
             } else if (chon == 5) {
-                timKiem(hoiMa("Nhap ma NCC can tim"));
+                timKiem(sc);
             } else if (chon == 6) {
                 docFile(FILE_NCC);
             } else if (chon == 7) {

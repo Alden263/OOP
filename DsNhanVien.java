@@ -2,7 +2,7 @@
 import java.util.ArrayList;
 public class DsNhanVien{
     private ArrayList<NhanVien> danhSach;
-    public DsNhanVien(){
+    public DsNhanVien() throws Exception {
         danhSach = new ArrayList<>();
         docFile();
     }
@@ -56,7 +56,7 @@ public class DsNhanVien{
         XuLyFile.ghiFile("NhanVien.txt", noiDung);
     }
     // doc danh sach nhan vien tu file
-    public void docFile(){
+    public void docFile() throws Exception {
         danhSach.clear();
         String noiDung = XuLyFile.docFile("NhanVien.txt");
         String[] dong = noiDung.split("\n");

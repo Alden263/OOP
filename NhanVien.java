@@ -19,7 +19,7 @@ public class NhanVien extends Nguoi{
         luong = 0;
         taiKhoan = null;
     }
-    public NhanVien(String ma, String hoTen, String soDienThoai, String chucVu, double luong, TaiKhoan taiKhoan){
+    public NhanVien(String ma, String hoTen, String soDienThoai, String chucVu, double luong, TaiKhoan taiKhoan) throws Exception{
         super(ma, hoTen, soDienThoai);
         setChucVu(chucVu);
         setLuong(luong);
