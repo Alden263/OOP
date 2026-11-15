@@ -1,18 +1,22 @@
 
 public class DsKhachHang{
     private KhachHang[] danhSach;
-    private int soLuong; 
-    public DsKhachHang(int kichThuoc){
-        danhSach = new KhachHang[kichThuoc]; 
+    private int soLuong;
+    private boolean tuDongLuu = true;
+    public DsKhachHang(int kichThuoc) { this(kichThuoc, true); }
+    public DsKhachHang(int kichThuoc, boolean tuDongLuu){
+        this.tuDongLuu = tuDongLuu;
+        danhSach = new KhachHang[kichThuoc];
         soLuong = 0;
-        docFile();
+        if (tuDongLuu) docFile();
     }
     public void themKhachHang(KhachHang kh){
+        if (soLuong == danhSach.length) danhSach = java.util.Arrays.copyOf(danhSach, Math.max(1, soLuong * 2));
         if (soLuong < danhSach.length) {
             danhSach[soLuong] = kh;
             soLuong++;
-            ghiFile();
-        } 
+            if (tuDongLuu) ghiFile();
+        }
         else{
             System.out.println("Danh sach da day, khong the them khach hang moi!");
         }
@@ -28,7 +32,7 @@ public class DsKhachHang{
             danhSach[i].hienThi();
             System.out.println();
         }
-    }  
+    }
     public void hienThi(){
         for (int i = 0; i < soLuong; i++) {
             danhSach[i].hienThi();
@@ -73,7 +77,7 @@ public class DsKhachHang{
                 // Xóa phần tử cuối cùng
                 danhSach[soLuong - 1] = null;
                 soLuong--;
-                ghiFile();
+                if (tuDongLuu) ghiFile();
                 System.out.println("Xóa khách hàng thành công!");
                 return true;
             }
@@ -81,7 +85,8 @@ public class DsKhachHang{
         System.out.println("Không tìm thấy khách hàng có mã: " + ma);
         return false;
     }
-    public void ghiFile() {
+    public void ghiFile() { ghiFile("KhachHang.txt"); }
+    public void ghiFile(String duongDan) {
         String noiDung = "";
         for (int i = 0; i < soLuong; i++) {
             KhachHang kh = danhSach[i];
@@ -90,24 +95,26 @@ public class DsKhachHang{
                     + kh.getSoDienThoai() + ";"
                     + kh.getDiaChi() + "\n";
         }
-        XuLyFile.ghiFile("KhachHang.txt", noiDung);
+        XuLyFile.ghiFile(duongDan, noiDung);
     }
 
     // Đọc danh sách khách hàng từ file
-    public void docFile() {
+    public void docFile() { docFile("KhachHang.txt"); }
+    public void docFile(String duongDan) {
         soLuong = 0;
-        String noiDung = XuLyFile.docFile("KhachHang.txt");
+        String noiDung = XuLyFile.docFile(duongDan);
         String[] dong = noiDung.split("\n");
         for (String s : dong) {
             if (!s.trim().isEmpty()) {
                 String[] tt = s.split(";", -1);
                 if (tt.length == 4) {
+                    if (soLuong == danhSach.length) danhSach = java.util.Arrays.copyOf(danhSach, Math.max(1, soLuong * 2));
                     if (soLuong < danhSach.length) {
                         KhachHang kh = new KhachHang(
-                            tt[0],
-                            tt[1],
-                            tt[2],
-                            tt[3]
+                                tt[0],
+                                tt[1],
+                                tt[2],
+                                tt[3]
                         );
                         danhSach[soLuong] = kh;
                         soLuong++;
@@ -119,4 +126,5 @@ public class DsKhachHang{
             }
         }
     }
+    public KhachHang[] layDanhSach() { return java.util.Arrays.copyOf(danhSach, soLuong); }
 }

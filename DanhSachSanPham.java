@@ -31,7 +31,7 @@ public class DanhSachSanPham implements ghiDocFile {
         if(dsSanPham.isEmpty()){
             System.out.println("Danh sách sản phẩm hiện đang trống");
         }
-        for(int i=0; i<= dsSanPham.size();i++){
+        for(int i=0; i< dsSanPham.size();i++){
             System.out.print((i + 1) + ". ");
             dsSanPham.get(i).hienthi(); // Gọi phương thức hiển thị của từng sản phẩm
             // Gọi phương thức abstract tinhGiaBan() đã được override ở lớp con
@@ -90,7 +90,7 @@ public class DanhSachSanPham implements ghiDocFile {
     @Override
     public void ghiFile(String duongDan) {
         String path = (duongDan != null && !duongDan.isEmpty()) ? duongDan : FILE_SAN_PHAM;
-        try (PrintWriter pw = new PrintWriter(new FileWriter(path))) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(path, java.nio.charset.StandardCharsets.UTF_8))) {
             for (SanPham sp : dsSanPham) {
                 // Định dạng dòng ghi file tùy thuộc vào loại đối tượng (Laptop, PC, LinhKien)
                 // Giả sử ta lưu theo định dạng: LOAI;MaSP;TenSP;DonGia;SoLuong;ThuocTinhRieng1;ThuocTinhRieng2...
@@ -99,23 +99,24 @@ public class DanhSachSanPham implements ghiDocFile {
                     Laptop lt = (Laptop) sp;
                     // Format: LAPTOP;ma;ten;gia;sl;ram;baohanh
                     line = "LAPTOP;" + lt.getMaSP() + ";" + lt.getTenSP() + ";" + lt.getDonGia() + ";" + lt.getSoLuong()
-                            + ";" + lt.getRAM() + ";" ;
+                            + ";" + lt.getCPU() + ";" + lt.getRAM() + ";" + lt.getDungLuongSSD();
                 } else if (sp instanceof PC) {
                     PC pc = (PC) sp;
                     // Format: PC;ma;ten;gia;sl;cpu;gpu
                     line = "PC;" + pc.getMaSP() + ";" + pc.getTenSP() + ";" + pc.getDonGia() + ";" + pc.getSoLuong()
-                            + ";" + pc.getCPU() + ";" + pc.getGPU();
+                            + ";" + pc.getCPU() + ";" + pc.getGPU() + ";" + pc.getRAM() + ";" + pc.getDungLuongSSD();
                 } else if (sp instanceof LinhKien) {
                     LinhKien lk = (LinhKien) sp;
                     // Format: LINHKIEN;ma;ten;gia;sl;thuonghieu
                     line = "LINHKIEN;" + lk.getMaSP() + ";" + lk.getTenSP() + ";" + lk.getDonGia() + ";" + lk.getSoLuong()
-                            + ";" + lk.getHangSanXuat();
+                            + ";" + lk.getLoaiLinhKien() + ";" + lk.getHangSanXuat();
                 }
                 pw.println(line);
             }
+            if (pw.checkError()) throw new IOException("Không thể ghi đầy đủ dữ liệu");
             System.out.println(" Ghi danh sách sản phẩm vào file " + path + " thành công!");
-        } catch (IOException e) {
-            System.out.println(" Lỗi khi ghi file: " + e.getMessage());
+        } catch (Exception e) {
+            throw new IllegalStateException("Không thể đọc/ghi dữ liệu", e);
         }
     }
 
@@ -134,12 +135,12 @@ public class DanhSachSanPham implements ghiDocFile {
         // Xóa danh sách cũ trước khi nạp dữ liệu từ file
         dsSanPham.clear();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(f, java.nio.charset.StandardCharsets.UTF_8))) {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
-                String[] p = line.split(";");
-                if (p.length < 5) continue;
+                String[] p = line.split(";", -1);
+                if (p.length < 5) throw new IOException("Thiếu cột sản phẩm: " + line);
 
                 String loai = p[0];
                 String ma = p[1];
@@ -168,10 +169,11 @@ public class DanhSachSanPham implements ghiDocFile {
                     String hangSX = p[6];
                     dsSanPham.add(new LinhKien(ma, ten, gia, sl, loaiLK, hangSX));
                 }
+                else { throw new IOException("Sai loại hoặc thiếu thuộc tính sản phẩm: " + line); }
             }
             System.out.println(" Đọc file " + path + " thành công! Tổng số sản phẩm nạp: " + dsSanPham.size());
         } catch (Exception e) {
-            System.out.println(" Lỗi khi đọc file: " + e.getMessage());
+            throw new IllegalStateException("Không thể đọc/ghi dữ liệu", e);
         }
     }
 

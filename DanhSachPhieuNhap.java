@@ -290,7 +290,7 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
     @Override
     public void ghiFile(String duongDan) {
         String path = (duongDan != null && !duongDan.isEmpty()) ? duongDan : FILE_PHIEU_NHAP;
-        try (PrintWriter pw = new PrintWriter(new FileWriter(path))) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(path, java.nio.charset.StandardCharsets.UTF_8))) {
             for (int i = 0; i < soLuong; i++) {
                 PhieuNhap ph = ds[i];
                 pw.println("PN;" + ph.getMaPN() + ";" + ph.getNgayNhap() + ";"
@@ -301,9 +301,10 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
                             + ";" + nl.getMaSP() + ";" + nl.getSoLuongNhap() + ";" + nl.getGiaNhap());
                 }
             }
+            if (pw.checkError()) throw new IOException("Không thể ghi đầy đủ dữ liệu");
             System.out.println("Ghi " + soLuong + " phieu nhap vao file " + path + " thanh cong!");
-        } catch (IOException e) {
-            System.out.println("Loi khi ghi file: " + e.getMessage());
+        } catch (Exception e) {
+            throw new IllegalStateException("Không thể đọc/ghi dữ liệu", e);
         }
     }
 
@@ -318,7 +319,7 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
         // xoa danh sach cu truoc khi nap tu file
         ds = new PhieuNhap[SUC_CHUA_BAN_DAU];
         soLuong = 0;
-        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(f, java.nio.charset.StandardCharsets.UTF_8))) {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) {
@@ -345,8 +346,8 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
                 }
             }
             System.out.println("Doc file " + path + " thanh cong! So phieu nap: " + soLuong);
-        } catch (IOException e) {
-            System.out.println("Loi khi doc file: " + e.getMessage());
+        } catch (Exception e) {
+            throw new IllegalStateException("Không thể đọc/ghi dữ liệu", e);
         }
     }
 
@@ -406,4 +407,5 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
             }
         } while (chon != 0);
     }
+    public PhieuNhap[] layDanhSach() { return Arrays.copyOf(ds, soLuong); }
 }

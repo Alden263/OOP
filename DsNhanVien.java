@@ -2,23 +2,26 @@
 import java.util.ArrayList;
 public class DsNhanVien{
     private ArrayList<NhanVien> danhSach;
-    public DsNhanVien() throws Exception {
+    private boolean tuDongLuu = true;
+    public DsNhanVien() throws Exception { this(true); }
+    public DsNhanVien(boolean tuDongLuu) throws Exception {
+        this.tuDongLuu = tuDongLuu;
         danhSach = new ArrayList<>();
-        docFile();
+        if (tuDongLuu) docFile();
     }
     public void themNhanVien(NhanVien nv){
         danhSach.add(nv);
-        ghiFile();
+        if (tuDongLuu) ghiFile();
     }
     public void xoaNhanVien(NhanVien nv){
         danhSach.remove(nv);
-        ghiFile();
+        if (tuDongLuu) ghiFile();
     }
     public void xoaNhanVienTheoMa(String maNV){
         NhanVien nv = timKiemTheoMa(maNV);
         if (nv != null) {
             danhSach.remove(nv);
-            ghiFile();
+            if (tuDongLuu) ghiFile();
         }
     }
     public NhanVien timKiemTheoMa(String maNV){
@@ -44,7 +47,8 @@ public class DsNhanVien{
             System.out.println("--------------------");
         }
     }
-    public void ghiFile(){
+    public void ghiFile(){ ghiFile("NhanVien.txt"); }
+    public void ghiFile(String duongDan){
         String noiDung = "";
         for (NhanVien nv : danhSach){
             noiDung += nv.getMa() + ";"
@@ -53,28 +57,30 @@ public class DsNhanVien{
                     + nv.getChucVu() + ";"
                     + nv.getLuong() + "\n";
         }
-        XuLyFile.ghiFile("NhanVien.txt", noiDung);
+        XuLyFile.ghiFile(duongDan, noiDung);
     }
     // doc danh sach nhan vien tu file
-    public void docFile() throws Exception {
+    public void docFile() throws Exception { docFile("NhanVien.txt"); }
+    public void docFile(String duongDan) throws Exception {
         danhSach.clear();
-        String noiDung = XuLyFile.docFile("NhanVien.txt");
+        String noiDung = XuLyFile.docFile(duongDan);
         String[] dong = noiDung.split("\n");
         for (String s : dong) {
             if (!s.trim().isEmpty()) {
                 String[] tt = s.split(";");
                 if (tt.length == 5) {
                     NhanVien nv = new NhanVien(
-                        tt[0],
-                        tt[1],
-                        tt[2],
-                        tt[3],
-                        Double.parseDouble(tt[4]),
-                        null
+                            tt[0],
+                            tt[1],
+                            tt[2],
+                            tt[3],
+                            Double.parseDouble(tt[4]),
+                            null
                     );
                     danhSach.add(nv);
                 }
             }
         }
     }
+    public NhanVien[] layDanhSach() { return danhSach.toArray(new NhanVien[0]); }
 }

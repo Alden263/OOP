@@ -210,8 +210,8 @@ public class DanhSachHoaDon implements IFileIO {
     @Override
     public void ghiFile(String duongDan) {
         String fileHD = (duongDan != null && !duongDan.isEmpty()) ? duongDan : FILE_HOA_DON;
-        try (PrintWriter pwHD = new PrintWriter(new FileWriter(fileHD));
-             PrintWriter pwCT = new PrintWriter(new FileWriter(FILE_CHI_TIET))) {
+        try (PrintWriter pwHD = new PrintWriter(new FileWriter(fileHD, java.nio.charset.StandardCharsets.UTF_8));
+             PrintWriter pwCT = new PrintWriter(new FileWriter(duongDanChiTiet(duongDan), java.nio.charset.StandardCharsets.UTF_8))) {
 
             for (int i = 0; i < soLuong; i++) {
                 // Ghi thong tin hoa don
@@ -223,9 +223,10 @@ public class DanhSachHoaDon implements IFileIO {
                     pwCT.println(ct.toFileString());
                 }
             }
+            if (pwHD.checkError() || pwCT.checkError()) throw new IOException("Lỗi ghi hóa đơn hoặc chi tiết");
             System.out.println("Ghi du lieu thanh cong vao " + fileHD + " va " + FILE_CHI_TIET + "!");
-        } catch (IOException e) {
-            System.out.println("Loi khi ghi file: " + e.getMessage());
+        } catch (Exception e) {
+            throw new IllegalStateException("Không thể đọc/ghi dữ liệu", e);
         }
     }
 
@@ -248,7 +249,7 @@ public class DanhSachHoaDon implements IFileIO {
         this.soLuong = 0;
 
         // Doc danh sach hoa don
-        try (BufferedReader brHD = new BufferedReader(new FileReader(fHD))) {
+        try (BufferedReader brHD = new BufferedReader(new FileReader(fHD, java.nio.charset.StandardCharsets.UTF_8))) {
             String line;
             while ((line = brHD.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
@@ -267,15 +268,14 @@ public class DanhSachHoaDon implements IFileIO {
                 }
             }
             System.out.println("Doc file " + fileHD + " thanh cong! So hoa don: " + soLuong);
-        } catch (IOException e) {
-            System.out.println("Loi khi doc file " + fileHD + ": " + e.getMessage());
-            return;
+        } catch (Exception e) {
+            throw new IllegalStateException("Không thể đọc/ghi dữ liệu", e);
         }
 
         // Doc danh sach chi tiet hoa don va nap vao tung hoa don tuong ung
-        File fCT = new File(FILE_CHI_TIET);
+        File fCT = new File(duongDanChiTiet(duongDan));
         if (fCT.exists()) {
-            try (BufferedReader brCT = new BufferedReader(new FileReader(fCT))) {
+            try (BufferedReader brCT = new BufferedReader(new FileReader(fCT, java.nio.charset.StandardCharsets.UTF_8))) {
                 String line;
                 int demCT = 0;
                 while ((line = brCT.readLine()) != null) {
@@ -295,13 +295,15 @@ public class DanhSachHoaDon implements IFileIO {
                     }
                 }
                 System.out.println("Doc file " + FILE_CHI_TIET + " thanh cong! Da nap " + demCT + " chi tiet san pham vao cac hoa don.");
-            } catch (Exception e) {
-                System.out.println("Loi khi doc file " + FILE_CHI_TIET + ": " + e.getMessage());
-            }
+            } catch (Exception e) { throw new IllegalStateException("Lỗi đọc chi tiết hóa đơn", e); }
         }
     }
 
     public void docFile() {
         docFile(FILE_HOA_DON);
+    }
+    private String duongDanChiTiet(String duongDan) {
+        File f = new File(duongDan == null || duongDan.isEmpty() ? FILE_HOA_DON : duongDan);
+        return new File(f.getAbsoluteFile().getParentFile(), FILE_CHI_TIET).getPath();
     }
 }

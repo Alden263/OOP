@@ -148,15 +148,16 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
     @Override
     public void ghiFile(String duongDan) {
         String path = (duongDan != null && !duongDan.isEmpty()) ? duongDan : FILE_NCC;
-        try (PrintWriter pw = new PrintWriter(new FileWriter(path))) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(path, java.nio.charset.StandardCharsets.UTF_8))) {
             for (int i = 0; i < soLuong; i++) {
                 NhaCungCap ncc = ds[i];
                 pw.println(ncc.getMaNCC() + ";" + ncc.getTenNCC() + ";"
                         + ncc.getDiaChi() + ";" + ncc.getSoDienThoai());
             }
+            if (pw.checkError()) throw new IOException("Không thể ghi đầy đủ dữ liệu");
             System.out.println("Ghi " + soLuong + " nha cung cap vao file " + path + " thanh cong!");
-        } catch (IOException e) {
-            System.out.println("Loi khi ghi file: " + e.getMessage());
+        } catch (Exception e) {
+            throw new IllegalStateException("Không thể đọc/ghi dữ liệu", e);
         }
     }
 
@@ -171,7 +172,7 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
         // xóa danh sách cũ trước khi nạp từ file
         ds = new NhaCungCap[SUC_CHUA_BAN_DAU];
         soLuong = 0;
-        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(f, java.nio.charset.StandardCharsets.UTF_8))) {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) {
@@ -184,8 +185,8 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
                 them(new NhaCungCap(p[0], p[1], p[2], p[3]));
             }
             System.out.println("Doc file " + path + " thanh cong! So NCC nap: " + soLuong);
-        } catch (IOException e) {
-            System.out.println("Loi khi đọc file: " + e.getMessage());
+        } catch (Exception e) {
+            throw new IllegalStateException("Không thể đọc/ghi dữ liệu", e);
         }
     }
 
@@ -230,4 +231,5 @@ public class DanhSachNhaCungCap implements IQuanLy, ghiDocFile {
             }
         } while (chon != 0);
     }
+    public NhaCungCap[] layDanhSach() { return Arrays.copyOf(ds, soLuong); }
 }
