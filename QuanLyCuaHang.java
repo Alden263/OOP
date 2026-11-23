@@ -1,6 +1,8 @@
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
@@ -80,13 +82,16 @@ public class QuanLyCuaHang {
      * Không đủ quyền thì in thông báo và trả về false để nơi gọi dừng lại.
      */
     private boolean duocPhep(ChucNang cn, int mucCan) {
-        NhanVien nv = nguoiDung();
-        if (nv != null && nv.getTaiKhoan() != null
-                && nv.getTaiKhoan().getQuyenHan().mucQuyen(cn) >= mucCan) {
-            return true;
-        }
+        if (muc(cn) >= mucCan) return true;
         System.out.println("Bạn không có quyền thực hiện chức năng này.");
         return false;
+    }
+
+    /** Mức quyền (QuyenHan.KHONG / XEM / GHI / TOAN) của người đang đăng nhập trên chức năng cn. */
+    private int muc(ChucNang cn) {
+        NhanVien nv = nguoiDung();
+        if (nv == null || nv.getTaiKhoan() == null) return QuyenHan.KHONG;
+        return nv.getTaiKhoan().getQuyenHan().mucQuyen(cn);
     }
 
     /**
@@ -97,6 +102,28 @@ public class QuanLyCuaHang {
         if (luaChon == 1 || luaChon == 2) return QuyenHan.GHI;   // thêm, sửa
         if (luaChon == 3) return QuyenHan.TOAN;                  // xóa
         return QuyenHan.XEM;                                     // tìm / xem
+    }
+
+    /**
+     * Giống chonMenu nhưng CHỈ HIỆN những mục mà người đang đăng nhập đủ quyền (theo quy ước của mucCanCua).
+     * Số hiển thị được đánh lại từ 1 cho liền nhau, nhưng giá trị trả về vẫn là số thứ tự GỐC của mục
+     * trong danh sách "muc", để code xử lý lựa chọn ở nơi gọi không phải sửa.
+     * Ví dụ nhân viên chỉ được xem sản phẩm: mục 1-3 (thêm/sửa/xóa) bị ẩn, mục "Tìm" hiện là số 1 nhưng trả về 4.
+     */
+    private int chonMenuTheoQuyen(String tieuDe, String mucSoKhong, ChucNang cn, String... muc) {
+        int quyen = muc(cn);
+        System.out.println("\n===== " + tieuDe + " =====");
+        int[] soGoc = new int[muc.length];   // soGoc[k] = số thứ tự gốc của mục đang hiển thị ở vị trí k + 1
+        int soMucHien = 0;
+        for (int i = 1; i <= muc.length; i++) {
+            if (quyen >= mucCanCua(i)) {          // đủ quyền thì mới hiện
+                soGoc[soMucHien++] = i;
+                System.out.println(soMucHien + ". " + muc[i - 1]);
+            }
+        }
+        System.out.println("0. " + mucSoKhong);
+        int chon = soNguyen("Chọn: ", 0, soMucHien);
+        return chon == 0 ? 0 : soGoc[chon - 1];
     }
 
     /** Màn hình đăng nhập. Cho nhập sai tối đa 3 lần. Trả về true nếu đăng nhập thành công. */
@@ -165,22 +192,37 @@ public class QuanLyCuaHang {
 
         System.out.println("\nĐang đăng nhập: " + nv.getHoTen()
                 + " (" + nv.getTaiKhoan().getQuyenHan().getTenQuyen() + ")");
-        // Menu hiển thị giống nhau cho mọi người; bấm vào chức năng không đủ quyền sẽ bị từ chối.
-        switch (chonMenu("MENU CHÍNH", "Đăng xuất", "Bán hàng tại quầy", "Quản lý sản phẩm",
-                "Quản lý khách hàng", "Quản lý hóa đơn", "Nhập hàng",
-                "Quản lý nhà cung cấp", "Quản lý nhân viên", "Quản lý tài khoản", "Đổi mật khẩu")) {
-            case 1: banHang(); break;   // quyền bán hàng được kiểm tra bên trong lapHoaDon
-            case 2: if (duocPhep(ChucNang.SAN_PHAM, QuyenHan.XEM)) menuSanPham(); break;
-            case 3: if (duocPhep(ChucNang.KHACH_HANG, QuyenHan.XEM)) menuKhachHang(); break;
-            case 4: if (duocPhep(ChucNang.HOA_DON, QuyenHan.XEM)) menuHoaDon(); break;
-            case 5: if (duocPhep(ChucNang.NHAP_HANG, QuyenHan.XEM)) menuNhapHang(); break;
-            case 6: if (duocPhep(ChucNang.NHA_CUNG_CAP, QuyenHan.XEM)) menuNhaCungCap(); break;
-            case 7: if (duocPhep(ChucNang.NHAN_VIEN, QuyenHan.XEM)) menuNhanVien(); break;
-            case 8: if (duocPhep(ChucNang.TAI_KHOAN, QuyenHan.XEM)) menuTaiKhoan(); break;
-            case 9: doiMatKhau(); break;   // ai cũng được đổi mật khẩu của chính mình
-            case 0: maNguoiDung = null; System.out.println("Đã đăng xuất."); break;
-            default: break;
+        // Menu chỉ chứa những chức năng người này được dùng, nên mỗi quyền thấy một menu khác nhau.
+        // Hai danh sách dưới đây đi cặp với nhau: tên[i] là chữ hiển thị, viec[i] là việc làm khi chọn mục đó.
+        List<String> ten = new ArrayList<>();
+        List<Runnable> viec = new ArrayList<>();
+        int sanPham = muc(ChucNang.SAN_PHAM);
+        themMuc(ten, viec, muc(ChucNang.BAN_HANG) >= QuyenHan.GHI, "Bán hàng tại quầy", this::banHang);
+        // Chỉ được xem thì đặt tên "Xem ..." cho đúng với những gì làm được.
+        themMuc(ten, viec, sanPham >= QuyenHan.XEM,
+                sanPham >= QuyenHan.GHI ? "Quản lý sản phẩm" : "Xem sản phẩm", this::menuSanPham);
+        themMuc(ten, viec, muc(ChucNang.KHACH_HANG) >= QuyenHan.XEM, "Quản lý khách hàng", this::menuKhachHang);
+        themMuc(ten, viec, muc(ChucNang.HOA_DON) >= QuyenHan.XEM, "Xem hóa đơn đã bán", this::menuHoaDon);
+        themMuc(ten, viec, muc(ChucNang.NHAP_HANG) >= QuyenHan.XEM, "Nhập hàng", this::menuNhapHang);
+        themMuc(ten, viec, muc(ChucNang.NHA_CUNG_CAP) >= QuyenHan.XEM, "Quản lý nhà cung cấp", this::menuNhaCungCap);
+        themMuc(ten, viec, muc(ChucNang.NHAN_VIEN) >= QuyenHan.XEM, "Quản lý nhân viên", this::menuNhanVien);
+        themMuc(ten, viec, muc(ChucNang.TAI_KHOAN) >= QuyenHan.XEM, "Quản lý tài khoản", this::menuTaiKhoan);
+        themMuc(ten, viec, true, "Đổi mật khẩu", this::doiMatKhau);   // ai cũng được đổi mật khẩu của mình
+
+        int chon = chonMenu("MENU CHÍNH", "Đăng xuất", ten.toArray(new String[0]));
+        if (chon == 0) {
+            maNguoiDung = null;
+            System.out.println("Đã đăng xuất.");
+        } else {
+            viec.get(chon - 1).run();   // chạy việc ứng với mục vừa chọn
         }
+    }
+
+    /** Thêm một mục vào menu chính, nhưng chỉ khi coQuyen = true (người dùng được phép dùng chức năng đó). */
+    private void themMuc(List<String> ten, List<Runnable> viec, boolean coQuyen, String nhan, Runnable viecCanLam) {
+        if (!coQuyen) return;
+        ten.add(nhan);
+        viec.add(viecCanLam);
     }
 
     // ===================== QUẢN LÝ TÀI KHOẢN (chỉ Admin) =====================
@@ -272,11 +314,10 @@ public class QuanLyCuaHang {
 
     private void menuSanPham() {
         while (dangChay) {
-            int chon = chonMenu("SẢN PHẨM", "Quay lại", "Thêm sản phẩm mới (tồn 0)",
+            int chon = chonMenuTheoQuyen("SẢN PHẨM", "Quay lại", ChucNang.SAN_PHAM, "Thêm sản phẩm mới (tồn 0)",
                     "Sửa thông tin / giá bán", "Xóa sản phẩm chưa có giao dịch",
                     "Tìm theo mã / tên / loại", "Hiển thị danh sách", "Xem tồn kho");
             if (chon == 0) return;
-            if (!duocPhep(ChucNang.SAN_PHAM, mucCanCua(chon))) continue;   // thêm/sửa/xóa cần đủ quyền
             if (chon == 1) thayDoi(() -> {
                 int loai = soNguyen("Loại: 1 Laptop, 2 PC, 3 Linh kiện: ", 1, 3);
                 String ma = maMoi(loai == 1 ? "LT" : loai == 2 ? "PC" : "LK");
@@ -323,10 +364,9 @@ public class QuanLyCuaHang {
 
     private void menuKhachHang() {
         while (dangChay) {
-            int chon = chonMenu("KHÁCH HÀNG", "Quay lại", "Thêm khách", "Sửa khách",
+            int chon = chonMenuTheoQuyen("KHÁCH HÀNG", "Quay lại", ChucNang.KHACH_HANG, "Thêm khách", "Sửa khách",
                     "Xóa khách chưa có giao dịch", "Tìm theo mã / tên / số điện thoại", "Xem danh sách", "Lịch sử mua hàng");
             if (chon == 0) return;
-            if (!duocPhep(ChucNang.KHACH_HANG, mucCanCua(chon))) continue;   // nhân viên không được xóa khách
             if (chon == 1) thayDoi(() -> { themKhach(); return true; });
             else if (chon == 2) thayDoi(() -> {
                 KhachHang kh = duLieu.khachHang.timTheoMa(chuoi("Mã khách: "));
@@ -367,10 +407,9 @@ public class QuanLyCuaHang {
 
     private void menuNhanVien() {
         while (dangChay) {
-            int chon = chonMenu("NHÂN VIÊN", "Quay lại", "Thêm nhân viên", "Sửa nhân viên",
+            int chon = chonMenuTheoQuyen("NHÂN VIÊN", "Quay lại", ChucNang.NHAN_VIEN, "Thêm nhân viên", "Sửa nhân viên",
                     "Xóa nhân viên chưa có giao dịch", "Tìm nhân viên", "Xem danh sách");
             if (chon == 0) return;
-            if (!duocPhep(ChucNang.NHAN_VIEN, mucCanCua(chon))) continue;
             if (chon == 1) thayDoi(() -> {
                 NhanVien nv = new NhanVien(maMoi("NV"), chuoi("Họ tên: "), dienThoai(),
                         chuoi("Chức vụ: "), soThuc("Lương: ",0,1e15), null);
@@ -404,9 +443,8 @@ public class QuanLyCuaHang {
 
     private void menuNhaCungCap() {
         while (dangChay) {
-            int chon = chonMenu("NHÀ CUNG CẤP", "Quay lại", "Thêm", "Sửa", "Xóa nếu chưa có phiếu nhập", "Tìm", "Xem danh sách");
+            int chon = chonMenuTheoQuyen("NHÀ CUNG CẤP", "Quay lại", ChucNang.NHA_CUNG_CAP, "Thêm", "Sửa", "Xóa nếu chưa có phiếu nhập", "Tìm", "Xem danh sách");
             if (chon == 0) return;
-            if (!duocPhep(ChucNang.NHA_CUNG_CAP, mucCanCua(chon))) continue;
             if (chon == 1) thayDoi(() -> duLieu.nhaCungCap.them(new NhaCungCap(
                     duLieu.nhaCungCap.sinhMa(), chuoi("Tên nhà cung cấp: "), chuoi("Địa chỉ: "), dienThoai())));
             else if (chon == 2) thayDoi(() -> {
