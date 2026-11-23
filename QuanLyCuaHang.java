@@ -11,9 +11,13 @@ public class QuanLyCuaHang {
     private final Path thuMucDuLieu;
     private DuLieuCuaHang duLieu;
     private boolean dangChay;
+    // Mã nhân viên đang đăng nhập (null = chưa đăng nhập).
+    // Chỉ lưu MÃ chứ không lưu đối tượng NhanVien, vì sau mỗi lần hủy/lỗi (xem thayDoi)
+    // dữ liệu được nạp lại và đối tượng cũ không còn thuộc danh sách mới.
+    private String maNguoiDung;
 
     public QuanLyCuaHang(String tenCuaHang) {
-        this(tenCuaHang, new Scanner(System.in));
+        this(tenCuaHang, new Scanner(System.in, java.nio.charset.StandardCharsets.UTF_8));
     }
     public QuanLyCuaHang(String tenCuaHang, Scanner sc) {
         this(tenCuaHang, sc, Paths.get("data"));
@@ -29,18 +33,29 @@ public class QuanLyCuaHang {
     public void chay() {
         try {
             napDuLieu();
+            // Chưa có tài khoản nào (lần chạy đầu) thì tạo sẵn 3 tài khoản mẫu để có thể đăng nhập.
+            boolean vuaTaoTaiKhoanMau = taoTaiKhoanMau();
             // Lần đầu nhập các tệp cũ vào một phiên bản đồng bộ, không ghi đè tệp gốc.
-            if (!Files.exists(thuMucDuLieu.resolve("CURRENT"))) duLieu.luu();
+            if (vuaTaoTaiKhoanMau || !Files.exists(thuMucDuLieu.resolve("CURRENT"))) duLieu.luu();
+            if (vuaTaoTaiKhoanMau) {
+                System.out.println("Đã tạo tài khoản mẫu: admin, quanly, nhanvien (mật khẩu: "
+                        + TaiKhoan.MAT_KHAU_MAC_DINH + ")");
+            }
         } catch (Exception e) {
             System.out.println("Không thể mở dữ liệu. Chưa thay đổi tệp gốc: " + lyDo(e));
             return;
         }
         dangChay = true;
         System.out.println("\n===== " + tenCuaHang + " =====");
-        System.out.println("Bán trực tiếp tại quầy. Mỗi giao dịch cần chọn nhân viên lập.");
+        System.out.println("Bán trực tiếp tại quầy. Mỗi giao dịch được ghi theo nhân viên đang đăng nhập.");
         System.out.println("Dữ liệu: " + thuMucDuLieu.toAbsolutePath());
         while (dangChay) {
-            try { menuChinh(); }
+            try {
+                // Chưa đăng nhập thì bắt đăng nhập trước; đăng nhập xong mới vào menu chính.
+                // Đăng nhập thất bại (sai quá 3 lần hoặc chọn thoát) thì kết thúc chương trình.
+                if (maNguoiDung == null && !dangNhap()) dangChay = false;
+                else menuChinh();
+            }
             catch (NoSuchElementException e) { dangChay = false; }
             catch (Exception e) { System.out.println("Không thể thực hiện: " + lyDo(e)); }
         }
@@ -53,20 +68,206 @@ public class QuanLyCuaHang {
         duLieu = moi; // Chỉ thay dữ liệu đang dùng khi đọc xong toàn bộ.
     }
 
+    // ===================== ĐĂNG NHẬP / PHÂN QUYỀN =====================
+
+    /** Nhân viên đang đăng nhập. Tìm lại theo mã mỗi lần vì dữ liệu có thể vừa được nạp lại (xem thayDoi). */
+    private NhanVien nguoiDung() {
+        return maNguoiDung == null ? null : duLieu.nhanVien.timKiemTheoMa(maNguoiDung);
+    }
+
+    /**
+     * Người đang đăng nhập có đủ quyền "mucCan" (QuyenHan.XEM / GHI / TOAN) trên chức năng cn không?
+     * Không đủ quyền thì in thông báo và trả về false để nơi gọi dừng lại.
+     */
+    private boolean duocPhep(ChucNang cn, int mucCan) {
+        NhanVien nv = nguoiDung();
+        if (nv != null && nv.getTaiKhoan() != null
+                && nv.getTaiKhoan().getQuyenHan().mucQuyen(cn) >= mucCan) {
+            return true;
+        }
+        System.out.println("Bạn không có quyền thực hiện chức năng này.");
+        return false;
+    }
+
+    /**
+     * Mức quyền cần có cho một lựa chọn trong các menu quản lý (sản phẩm, khách hàng, nhà cung cấp, nhân viên).
+     * Các menu này cùng quy ước: 1 = thêm, 2 = sửa, 3 = xóa, còn lại (tìm, xem danh sách...) = chỉ xem.
+     */
+    private int mucCanCua(int luaChon) {
+        if (luaChon == 1 || luaChon == 2) return QuyenHan.GHI;   // thêm, sửa
+        if (luaChon == 3) return QuyenHan.TOAN;                  // xóa
+        return QuyenHan.XEM;                                     // tìm / xem
+    }
+
+    /** Màn hình đăng nhập. Cho nhập sai tối đa 3 lần. Trả về true nếu đăng nhập thành công. */
+    private boolean dangNhap() {
+        for (int lan = 1; lan <= 3; lan++) {
+            System.out.println("\n===== ĐĂNG NHẬP =====");
+            String ten = chuoi("Tên đăng nhập (nhập 0 để thoát): ");
+            if (ten.equals("0")) return false;
+            String matKhau = chuoi("Mật khẩu: ");
+            NhanVien nv = duLieu.nhanVien.dangNhap(ten, matKhau);
+            if (nv != null) {
+                maNguoiDung = nv.getMa();   // ghi nhớ ai đang dùng chương trình
+                System.out.println("Xin chào " + nv.getHoTen() + "!");
+                return true;
+            }
+            // Cố ý không nói sai tên hay sai mật khẩu, để người lạ không dò được tên đăng nhập.
+            System.out.println("Sai tên đăng nhập hoặc mật khẩu (lần " + lan + "/3).");
+        }
+        System.out.println("Nhập sai quá 3 lần.");
+        return false;
+    }
+
+    /** Người đang đăng nhập tự đổi mật khẩu của mình. */
+    private void doiMatKhau() {
+        thayDoi(() -> {
+            TaiKhoan tk = nguoiDung().getTaiKhoan();
+            if (!tk.kiemTraMatKhau(chuoi("Mật khẩu hiện tại: "))) {
+                System.out.println("Mật khẩu hiện tại không đúng.");
+                return false;
+            }
+            String moi = chuoi("Mật khẩu mới (tối thiểu 3 ký tự): ");
+            if (!moi.equals(chuoi("Nhập lại mật khẩu mới: "))) {
+                System.out.println("Hai lần nhập không giống nhau.");
+                return false;
+            }
+            tk.doiMatKhau(moi);
+            return true;
+        });
+    }
+
+    /**
+     * Lần chạy đầu tiên (chưa nhân viên nào có tài khoản): tạo 3 nhân viên mẫu, mỗi người một quyền.
+     * Trả về true nếu đã tạo (để nơi gọi lưu lại dữ liệu).
+     */
+    private boolean taoTaiKhoanMau() throws Exception {
+        if (duLieu.nhanVien.coTaiKhoan()) return false;
+        themNhanVienMau("Phát", "0900000001", "Quản trị hệ thống", 15000000, "admin", QuyenHan.Admin);
+        themNhanVienMau("Tùng", "0900000002", "Quản lý", 12000000, "quanly", QuyenHan.Quan_ly);
+        themNhanVienMau("Phú", "0900000003", "Nhân viên bán hàng", 8000000, "nhanvien", QuyenHan.Nhan_vien); // bán hàng và nhập hàng
+        return true;
+    }
+
+    /** Thêm một nhân viên kèm tài khoản (mật khẩu mặc định) vào danh sách. Mã nhân viên tự sinh. */
+    private void themNhanVienMau(String hoTen, String sdt, String chucVu, double luong,
+                                 String tenDangNhap, QuyenHan quyen) throws Exception {
+        TaiKhoan tk = new TaiKhoan(tenDangNhap, TaiKhoan.MAT_KHAU_MAC_DINH, quyen);
+        duLieu.nhanVien.themNhanVien(new NhanVien(maMoi("NV"), hoTen, sdt, chucVu, luong, tk));
+    }
+
+    // ===================== MENU CHÍNH =====================
+
     private void menuChinh() {
-        switch (chonMenu("MENU CHÍNH", "Thoát", "Bán hàng tại quầy", "Quản lý sản phẩm",
+        // Phòng trường hợp tài khoản đang dùng không còn nữa: quay lại màn hình đăng nhập.
+        NhanVien nv = nguoiDung();
+        if (nv == null || nv.getTaiKhoan() == null) { maNguoiDung = null; return; }
+
+        System.out.println("\nĐang đăng nhập: " + nv.getHoTen()
+                + " (" + nv.getTaiKhoan().getQuyenHan().getTenQuyen() + ")");
+        // Menu hiển thị giống nhau cho mọi người; bấm vào chức năng không đủ quyền sẽ bị từ chối.
+        switch (chonMenu("MENU CHÍNH", "Đăng xuất", "Bán hàng tại quầy", "Quản lý sản phẩm",
                 "Quản lý khách hàng", "Quản lý hóa đơn", "Nhập hàng",
-                "Quản lý nhà cung cấp", "Quản lý nhân viên")) {
-            case 1: banHang(); break;
-            case 2: menuSanPham(); break;
-            case 3: menuKhachHang(); break;
-            case 4: menuHoaDon(); break;
-            case 5: menuNhapHang(); break;
-            case 6: menuNhaCungCap(); break;
-            case 7: menuNhanVien(); break;
-            case 0: dangChay = false; break;
+                "Quản lý nhà cung cấp", "Quản lý nhân viên", "Quản lý tài khoản", "Đổi mật khẩu")) {
+            case 1: banHang(); break;   // quyền bán hàng được kiểm tra bên trong lapHoaDon
+            case 2: if (duocPhep(ChucNang.SAN_PHAM, QuyenHan.XEM)) menuSanPham(); break;
+            case 3: if (duocPhep(ChucNang.KHACH_HANG, QuyenHan.XEM)) menuKhachHang(); break;
+            case 4: if (duocPhep(ChucNang.HOA_DON, QuyenHan.XEM)) menuHoaDon(); break;
+            case 5: if (duocPhep(ChucNang.NHAP_HANG, QuyenHan.XEM)) menuNhapHang(); break;
+            case 6: if (duocPhep(ChucNang.NHA_CUNG_CAP, QuyenHan.XEM)) menuNhaCungCap(); break;
+            case 7: if (duocPhep(ChucNang.NHAN_VIEN, QuyenHan.XEM)) menuNhanVien(); break;
+            case 8: if (duocPhep(ChucNang.TAI_KHOAN, QuyenHan.XEM)) menuTaiKhoan(); break;
+            case 9: doiMatKhau(); break;   // ai cũng được đổi mật khẩu của chính mình
+            case 0: maNguoiDung = null; System.out.println("Đã đăng xuất."); break;
             default: break;
         }
+    }
+
+    // ===================== QUẢN LÝ TÀI KHOẢN (chỉ Admin) =====================
+
+    private void menuTaiKhoan() {
+        while (dangChay) {
+            int chon = chonMenu("TÀI KHOẢN", "Quay lại", "Xem danh sách tài khoản",
+                    "Cấp tài khoản cho nhân viên", "Đổi quyền tài khoản",
+                    "Đặt lại mật khẩu về " + TaiKhoan.MAT_KHAU_MAC_DINH, "Xóa tài khoản");
+            if (chon == 0) return;
+            if (chon == 1) hienThiTaiKhoan();
+            else if (chon == 2) thayDoi(() -> {
+                // Cấp tài khoản mới cho nhân viên chưa có.
+                NhanVien nv = timNhanVien(); if (nv == null) return false;
+                if (nv.getTaiKhoan() != null) { System.out.println("Nhân viên này đã có tài khoản."); return false; }
+                String ten = tenDangNhapMoi();
+                nv.setTaiKhoan(new TaiKhoan(ten, TaiKhoan.MAT_KHAU_MAC_DINH, chonQuyen()));
+                System.out.println("Đã cấp tài khoản. Mật khẩu mặc định: " + TaiKhoan.MAT_KHAU_MAC_DINH);
+                return true;
+            });
+            else if (chon == 3) thayDoi(() -> {
+                // Đổi quyền: không cho đổi quyền của chính mình (tránh tự hạ quyền rồi hệ thống không còn Admin).
+                NhanVien nv = timNhanVienCoTaiKhoan(true); if (nv == null) return false;
+                nv.getTaiKhoan().setQuyenHan(chonQuyen());
+                return true;
+            });
+            else if (chon == 4) thayDoi(() -> {
+                // Đặt lại mật khẩu (khi nhân viên quên). Cho phép cả với chính mình.
+                NhanVien nv = timNhanVienCoTaiKhoan(false); if (nv == null) return false;
+                nv.getTaiKhoan().doiMatKhau(TaiKhoan.MAT_KHAU_MAC_DINH);
+                System.out.println("Đã đặt lại mật khẩu về " + TaiKhoan.MAT_KHAU_MAC_DINH);
+                return true;
+            });
+            else thayDoi(() -> {
+                // Xóa tài khoản: nhân viên vẫn còn trong danh sách, chỉ mất khả năng đăng nhập.
+                // Không cho tự xóa mình để luôn còn ít nhất một Admin.
+                NhanVien nv = timNhanVienCoTaiKhoan(true); if (nv == null) return false;
+                nv.setTaiKhoan(null);
+                return true;
+            });
+        }
+    }
+
+    /** In danh sách tài khoản: mã nhân viên | họ tên | tên đăng nhập | quyền. */
+    private void hienThiTaiKhoan() {
+        for (NhanVien nv : duLieu.nhanVien.layDanhSach()) {
+            TaiKhoan tk = nv.getTaiKhoan();
+            String thongTin = (tk == null)
+                    ? "(chưa có tài khoản)"
+                    : tk.getTenDangNhap() + " | " + tk.getQuyenHan().getTenQuyen();
+            System.out.println(nv.getMa() + " | " + nv.getHoTen() + " | " + thongTin);
+        }
+    }
+
+    /**
+     * Chọn một nhân viên đã có tài khoản (nhập mã nhân viên).
+     * khongChoChinhMinh = true: không cho chọn chính người đang đăng nhập.
+     * Trả về null (kèm thông báo) nếu không chọn được.
+     */
+    private NhanVien timNhanVienCoTaiKhoan(boolean khongChoChinhMinh) {
+        NhanVien nv = timNhanVien();
+        if (nv == null) return null;
+        if (nv.getTaiKhoan() == null) {
+            System.out.println("Nhân viên này chưa có tài khoản.");
+            return null;
+        }
+        if (khongChoChinhMinh && nv.getMa().equalsIgnoreCase(maNguoiDung)) {
+            System.out.println("Không thể thực hiện với chính tài khoản đang đăng nhập.");
+            return null;
+        }
+        return nv;
+    }
+
+    /** Hỏi tên đăng nhập mới, hỏi lại cho đến khi hợp lệ và chưa ai dùng. */
+    private String tenDangNhapMoi() {
+        while (true) {
+            String ten = chuoi("Tên đăng nhập mới (3-20 ký tự: chữ không dấu, số, _ hoặc .): ");
+            if (!TaiKhoan.hopLeTenDangNhap(ten)) System.out.println("Tên đăng nhập không hợp lệ.");
+            else if (duLieu.nhanVien.timTheoTenDangNhap(ten) != null) System.out.println("Tên đăng nhập đã có người dùng.");
+            else return ten;
+        }
+    }
+
+    /** Cho người dùng chọn 1 trong 3 quyền. */
+    private QuyenHan chonQuyen() {
+        int so = soNguyen("Quyền: 1 Nhân viên, 2 Quản lý, 3 Admin: ", 1, 3);
+        return QuyenHan.TAT_CA[so - 1];   // TAT_CA xếp đúng thứ tự: Nhân viên, Quản lý, Admin
     }
 
     private void menuSanPham() {
@@ -75,6 +276,7 @@ public class QuanLyCuaHang {
                     "Sửa thông tin / giá bán", "Xóa sản phẩm chưa có giao dịch",
                     "Tìm theo mã / tên / loại", "Hiển thị danh sách", "Xem tồn kho");
             if (chon == 0) return;
+            if (!duocPhep(ChucNang.SAN_PHAM, mucCanCua(chon))) continue;   // thêm/sửa/xóa cần đủ quyền
             if (chon == 1) thayDoi(() -> {
                 int loai = soNguyen("Loại: 1 Laptop, 2 PC, 3 Linh kiện: ", 1, 3);
                 String ma = maMoi(loai == 1 ? "LT" : loai == 2 ? "PC" : "LK");
@@ -124,6 +326,7 @@ public class QuanLyCuaHang {
             int chon = chonMenu("KHÁCH HÀNG", "Quay lại", "Thêm khách", "Sửa khách",
                     "Xóa khách chưa có giao dịch", "Tìm theo mã / tên / số điện thoại", "Xem danh sách", "Lịch sử mua hàng");
             if (chon == 0) return;
+            if (!duocPhep(ChucNang.KHACH_HANG, mucCanCua(chon))) continue;   // nhân viên không được xóa khách
             if (chon == 1) thayDoi(() -> { themKhach(); return true; });
             else if (chon == 2) thayDoi(() -> {
                 KhachHang kh = duLieu.khachHang.timTheoMa(chuoi("Mã khách: "));
@@ -167,10 +370,12 @@ public class QuanLyCuaHang {
             int chon = chonMenu("NHÂN VIÊN", "Quay lại", "Thêm nhân viên", "Sửa nhân viên",
                     "Xóa nhân viên chưa có giao dịch", "Tìm nhân viên", "Xem danh sách");
             if (chon == 0) return;
+            if (!duocPhep(ChucNang.NHAN_VIEN, mucCanCua(chon))) continue;
             if (chon == 1) thayDoi(() -> {
                 NhanVien nv = new NhanVien(maMoi("NV"), chuoi("Họ tên: "), dienThoai(),
                         chuoi("Chức vụ: "), soThuc("Lương: ",0,1e15), null);
-                duLieu.nhanVien.themNhanVien(nv); System.out.println("Mã nhân viên: " + nv.getMa()); return true;
+                duLieu.nhanVien.themNhanVien(nv); System.out.println("Mã nhân viên: " + nv.getMa());
+                System.out.println("Nhân viên mới chưa có tài khoản, nhờ Admin cấp ở mục Quản lý tài khoản."); return true;
             });
             else if (chon == 2) thayDoi(() -> {
                 NhanVien nv = timNhanVien(); if (nv == null) return false;
@@ -180,6 +385,8 @@ public class QuanLyCuaHang {
             });
             else if (chon == 3) thayDoi(() -> {
                 NhanVien nv = timNhanVien(); if (nv == null) return false;
+                // Nhân viên còn tài khoản thì phải để Admin xóa tài khoản trước (tránh lỡ xóa mất Admin).
+                if (nv.getTaiKhoan() != null) { System.out.println("Nhân viên đang có tài khoản, nhờ Admin xóa tài khoản trước."); return false; }
                 if (coLichSu("NV", nv.getMa())) { System.out.println("Nhân viên đã có giao dịch, không xóa."); return false; }
                 duLieu.nhanVien.xoaNhanVien(nv); return true;
             });
@@ -199,6 +406,7 @@ public class QuanLyCuaHang {
         while (dangChay) {
             int chon = chonMenu("NHÀ CUNG CẤP", "Quay lại", "Thêm", "Sửa", "Xóa nếu chưa có phiếu nhập", "Tìm", "Xem danh sách");
             if (chon == 0) return;
+            if (!duocPhep(ChucNang.NHA_CUNG_CAP, mucCanCua(chon))) continue;
             if (chon == 1) thayDoi(() -> duLieu.nhaCungCap.them(new NhaCungCap(
                     duLieu.nhaCungCap.sinhMa(), chuoi("Tên nhà cung cấp: "), chuoi("Địa chỉ: "), dienThoai())));
             else if (chon == 2) thayDoi(() -> {
@@ -233,7 +441,10 @@ public class QuanLyCuaHang {
         if (duLieu.sanPham.getDsSanPham().isEmpty() || duLieu.nhanVien.layDanhSach().length == 0) {
             System.out.println("Cần có sản phẩm và nhân viên trước khi bán."); return false;
         }
-        NhanVien nv = timNhanVien(); if (nv == null) return false;
+        // Kiểm tra quyền bán hàng, rồi lấy luôn người đang đăng nhập làm nhân viên lập hóa đơn.
+        if (!duocPhep(ChucNang.BAN_HANG, QuyenHan.GHI)) return false;
+        NhanVien nv = nguoiDung();
+        System.out.println("Nhân viên lập: " + nv.getHoTen() + " (" + nv.getMa() + ")");
         int luaChonKH = soNguyen("Khách: 1 Có hồ sơ, 2 Thêm mới, 3 Khách lẻ: ",1,3);
         KhachHang kh;
         if (luaChonKH == 1) {
@@ -313,13 +524,15 @@ public class QuanLyCuaHang {
     public void nhapHang() { thayDoi(this::lapPhieuNhap); }
 
     private boolean lapPhieuNhap() {
+        if (!duocPhep(ChucNang.NHAP_HANG, QuyenHan.GHI)) return false;   // Nhân viên / Quản lý / Admin đều được lập phiếu
         if (duLieu.nhaCungCap.laRong() || duLieu.sanPham.getDsSanPham().isEmpty() || duLieu.nhanVien.layDanhSach().length == 0) {
             System.out.println("Cần có nhà cung cấp, sản phẩm và nhân viên trước khi nhập."); return false;
         }
         duLieu.nhaCungCap.hienThi();
         NhaCungCap ncc = duLieu.nhaCungCap.timTheoMa(chuoi("Mã nhà cung cấp: "));
         if (ncc == null) { System.out.println("Không tìm thấy nhà cung cấp."); return false; }
-        NhanVien nv = timNhanVien(); if (nv == null) return false;
+        // Nhân viên lập phiếu chính là người đang đăng nhập (quyền nhập hàng đã kiểm tra ngay đầu hàm).
+        NhanVien nv = nguoiDung();
         PhieuNhap ph = new PhieuNhap(duLieu.phieuNhap.sinhMaPN(), ngayHomNay(), ncc.getMaNCC(),nv.getMa());
         while (true) {
             int chon = chonMenu("PHIẾU NHẬP TẠM " + ph.getMaPN(), "Hủy phiếu", "Thêm sản phẩm", "Xem phiếu", "Xác nhận nhập kho");
@@ -372,7 +585,7 @@ public class QuanLyCuaHang {
     }
     private NhanVien timNhanVien() {
         duLieu.nhanVien.hienThi();
-        String ma = chuoi("Mã nhân viên lập: ");
+        String ma = chuoi("Mã nhân viên: ");
         for (NhanVien nv : duLieu.nhanVien.layDanhSach()) if (nv.getMa().equalsIgnoreCase(ma)) return nv;
         System.out.println("Không tìm thấy nhân viên."); return null;
     }

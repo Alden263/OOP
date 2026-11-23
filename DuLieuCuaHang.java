@@ -92,7 +92,7 @@ public class DuLieuCuaHang {
                 };
                 case "HoaDon.txt" -> a[0].equals("BAN_LE") ? 6 : a[0].equals("BAN_SI") ? 7 : -1;
                 case "ChiTietHoaDon.txt", "KhachHang.txt", "NhaCungCap.txt" -> 4;
-                case "NhanVien.txt" -> 5;
+                case "NhanVien.txt" -> a.length == 8 ? 8 : 5; // 8 cột (có cột tài khoản) hoặc 5 cột (file cũ)
                 case "PhieuNhap.txt" -> a[0].equals("PN") ? 5 : a[0].equals("CT") ? 7 : -1;
                 default -> -1;
             };
