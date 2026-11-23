@@ -15,7 +15,7 @@ public class QuyenHan {
 
     // ===== 3 quyền có sẵn =====
     public final static QuyenHan Nhan_vien = new QuyenHan("NV", "Nhân viên",
-            "bán hàng, nhập hàng, quản lý khách hàng (không xóa); chỉ xem sản phẩm");
+            "bán hàng, nhập hàng, quản lý khách hàng (không xóa), quản lý hóa đơn; chỉ xem sản phẩm");
     public final static QuyenHan Quan_ly = new QuyenHan("QL", "Quản lý",
             "bán hàng, nhập hàng, quản lý sản phẩm, khách hàng, nhà cung cấp, nhân viên; chỉ xem hóa đơn");
     public final static QuyenHan Admin = new QuyenHan("AD", "Admin",
@@ -53,7 +53,7 @@ public class QuyenHan {
      *   Bán hàng         |    GHI    |   GHI   | TOAN
      *   Sản phẩm         |    XEM    |  TOAN   | TOAN   (nhân viên chỉ xem để tra mã, tồn kho)
      *   Khách hàng       |    GHI    |  TOAN   | TOAN   (nhân viên không được xóa khách)
-     *   Hóa đơn          |   KHONG   |   XEM   | TOAN
+     *   Hóa đơn          |    XEM    |   XEM   | TOAN   (xem danh sách, tìm và in lại, lịch sử theo khách)
      *   Nhập hàng        |    GHI    |   GHI   | TOAN
      *   Nhà cung cấp     |   KHONG   |  TOAN   | TOAN   (nhân viên vẫn chọn được nhà cung cấp khi lập phiếu nhập)
      *   Nhân viên        |   KHONG   |  TOAN   | TOAN
@@ -73,11 +73,11 @@ public class QuyenHan {
             return TOAN;
         }
 
-        // Nhân viên: chỉ làm việc ở quầy = bán hàng, nhập hàng, làm việc với khách; chỉ xem sản phẩm.
-        // Các chức năng còn lại (hóa đơn, nhà cung cấp, nhân viên, tài khoản) không thuộc việc của nhân viên.
+        // Nhân viên: làm việc ở quầy = bán hàng, nhập hàng, làm việc với khách, tra cứu hóa đơn; chỉ xem sản phẩm.
+        // Các chức năng còn lại (nhà cung cấp, nhân viên, tài khoản) không thuộc việc của nhân viên.
         if (maQuyen.equals("NV")) {
             if (cn == ChucNang.BAN_HANG || cn == ChucNang.NHAP_HANG || cn == ChucNang.KHACH_HANG) return GHI;
-            if (cn == ChucNang.SAN_PHAM) return XEM;
+            if (cn == ChucNang.SAN_PHAM || cn == ChucNang.HOA_DON) return XEM;
             return KHONG;
         }
 

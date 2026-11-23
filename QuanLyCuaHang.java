@@ -202,7 +202,7 @@ public class QuanLyCuaHang {
         themMuc(ten, viec, sanPham >= QuyenHan.XEM,
                 sanPham >= QuyenHan.GHI ? "Quản lý sản phẩm" : "Xem sản phẩm", this::menuSanPham);
         themMuc(ten, viec, muc(ChucNang.KHACH_HANG) >= QuyenHan.XEM, "Quản lý khách hàng", this::menuKhachHang);
-        themMuc(ten, viec, muc(ChucNang.HOA_DON) >= QuyenHan.XEM, "Xem hóa đơn đã bán", this::menuHoaDon);
+        themMuc(ten, viec, muc(ChucNang.HOA_DON) >= QuyenHan.XEM, "Quản lý hóa đơn", this::menuHoaDon);
         themMuc(ten, viec, muc(ChucNang.NHAP_HANG) >= QuyenHan.XEM, "Nhập hàng", this::menuNhapHang);
         themMuc(ten, viec, muc(ChucNang.NHA_CUNG_CAP) >= QuyenHan.XEM, "Quản lý nhà cung cấp", this::menuNhaCungCap);
         themMuc(ten, viec, muc(ChucNang.NHAN_VIEN) >= QuyenHan.XEM, "Quản lý nhân viên", this::menuNhanVien);

@@ -1,0 +1,3 @@
+NCC001;Công ty Máy Tính Phương Nam;100 Cách Mạng Tháng 8, Quận 3, TP.HCM;0281000001
+NCC002;Công ty Linh Kiện Đại Phát;25 Lý Thường Kiệt, Quận 10, TP.HCM;0282000002
+NCC003;Công ty Phân Phối Hưng Thịnh;8 Trần Phú, Hà Đông, Hà Nội;0243000003
