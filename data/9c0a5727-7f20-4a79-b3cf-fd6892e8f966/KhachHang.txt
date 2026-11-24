@@ -2,3 +2,4 @@ KH001;Nguyễn Văn An;0912000001;12 Lê Lợi, Quận 1, TP.HCM
 KH002;Trần Thị Bình;0912000002;45 Nguyễn Trãi, Quận 5, TP.HCM
 KH003;Lê Hoàng Cường;0912000003;78 Hai Bà Trưng, Quận 3, TP.HCM
 KHLE;Khách lẻ;0000000000;Tại quầy
+KH004;Phat;0900000000;Q4
