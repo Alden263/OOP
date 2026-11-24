@@ -91,15 +91,6 @@ public class DsNhanVien {
         return false;
     }
 
-    // ===================== HIỂN THỊ =====================
-
-    public void hienThi() {
-        for (NhanVien nv : danhSach) {
-            nv.hienThi();
-            System.out.println("--------------------");
-        }
-    }
-
     // ===================== GHI / ĐỌC FILE =====================
 
     public void ghiFile() {

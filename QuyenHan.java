@@ -51,13 +51,14 @@ public class QuyenHan {
      *   Chức năng        | Nhân viên | Quản lý | Admin
      *   -----------------+-----------+---------+------
      *   Bán hàng         |    GHI    |   GHI   | TOAN
-     *   Sản phẩm         |    XEM    |  TOAN   | TOAN   (nhân viên chỉ xem để tra mã, tồn kho)
+     *   Sản phẩm         |    XEM    |  TOAN   | TOAN   (nhân viên chỉ xem để tra mã, tồn kho; [UX] khi nhập hàng cũng chỉ nhập thêm cho sản phẩm đã có)
      *   Khách hàng       |    GHI    |  TOAN   | TOAN   (nhân viên không được xóa khách)
      *   Hóa đơn          |    XEM    |   XEM   | TOAN   (xem danh sách, tìm và in lại, lịch sử theo khách)
      *   Nhập hàng        |    GHI    |   GHI   | TOAN
      *   Nhà cung cấp     |   KHONG   |  TOAN   | TOAN   (nhân viên vẫn chọn được nhà cung cấp khi lập phiếu nhập)
      *   Nhân viên        |   KHONG   |  TOAN   | TOAN
      *   Tài khoản        |   KHONG   |  KHONG  | TOAN
+     *   Thống kê         |   KHONG   |   XEM   | TOAN   ([UX] chỉ xem số liệu, không sửa gì)
      *
      * Menu chính chỉ hiện những chức năng có mức quyền từ XEM trở lên (xem QuanLyCuaHang.menuChinh).
      */
@@ -68,7 +69,7 @@ public class QuyenHan {
         // Quản lý: quản lý hầu hết mọi thứ, trừ tài khoản; hóa đơn chỉ được xem.
         if (maQuyen.equals("QL")) {
             if (cn == ChucNang.TAI_KHOAN) return KHONG;
-            if (cn == ChucNang.HOA_DON) return XEM;
+            if (cn == ChucNang.HOA_DON || cn == ChucNang.THONG_KE) return XEM;   // [UX] thống kê chỉ để xem
             if (cn == ChucNang.BAN_HANG || cn == ChucNang.NHAP_HANG) return GHI;
             return TOAN;
         }
@@ -107,11 +108,5 @@ public class QuyenHan {
 
     public void setMoTa(String moTa) {
         this.moTa = moTa;
-    }
-
-    public void hienThi() {
-        System.out.println("Ma quyen: " + maQuyen);
-        System.out.println("Ten quyen: " + tenQuyen);
-        System.out.println("Mo ta: " + moTa);
     }
 }

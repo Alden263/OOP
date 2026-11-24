@@ -1,5 +1,3 @@
-import java.util.Scanner;
-
 public class HoaDonBanLe extends HoaDon {
     private int diemTichLuySuDung; // Moi diem tuong duong giam 1.000d
 
@@ -41,18 +39,7 @@ public class HoaDonBanLe extends HoaDon {
 
     @Override
     public String getLoaiHoaDon() {
-        return "Ban le";
-    }
-
-    @Override
-    public void nhap(Scanner sc) {
-        super.nhap(sc);
-        System.out.print("Nhap diem tich luy khach muon su dung: ");
-        try {
-            this.diemTichLuySuDung = Integer.parseInt(sc.nextLine().trim());
-        } catch (NumberFormatException e) {
-            this.diemTichLuySuDung = 0;
-        }
+        return "Bán lẻ";
     }
 
     @Override

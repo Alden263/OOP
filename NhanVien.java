@@ -49,16 +49,5 @@ public class NhanVien extends Nguoi{
     public void setTaiKhoan(TaiKhoan taiKhoan){
         this.taiKhoan = taiKhoan;
     }
-    @Override
-    public void hienThi() {
-        System.out.println("Ma nhan vien: " + ma);
-        System.out.println("Ho ten: " + hoTen);
-        System.out.println("So dien thoai: " + soDienThoai);
-        System.out.println("Chuc vu: " + chucVu);
-        System.out.println("Luong: " + luong);
-        if (taiKhoan != null) {
-            taiKhoan.hienThi();
-        }
-    }
 }
 

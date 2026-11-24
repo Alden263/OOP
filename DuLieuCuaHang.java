@@ -1,7 +1,8 @@
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.Scanner;
 import java.util.UUID;
 
 /**
@@ -16,24 +17,57 @@ public class DuLieuCuaHang {
     public final DsNhanVien nhanVien;
     public final DanhSachNhaCungCap nhaCungCap;
     public final DanhSachPhieuNhap phieuNhap;
+    public final DanhSachSeri seri;   // [SERI] seri từng máy, lưu riêng trong SeriSanPham.txt
     private final Path thuMuc;
     private static final String[] CAC_TEP = {
             "SanPham.txt", "HoaDon.txt", "ChiTietHoaDon.txt", "KhachHang.txt",
-            "NhanVien.txt", "NhaCungCap.txt", "PhieuNhap.txt"
+            "NhanVien.txt", "NhaCungCap.txt", "PhieuNhap.txt",
+            "SeriSanPham.txt"   // [SERI] file mới
     };
 
-    public DuLieuCuaHang(Scanner sc, Path thuMuc) throws Exception {
+    public DuLieuCuaHang(Path thuMuc) throws Exception {
         this.thuMuc = thuMuc;
         sanPham = new DanhSachSanPham();
         hoaDon = new DanhSachHoaDon();
         // Không tự đọc/ghi tệp gốc: việc lưu được điều phối chung bên dưới.
         khachHang = new DsKhachHang(10, false);
         nhanVien = new DsNhanVien(false);
-        nhaCungCap = new DanhSachNhaCungCap(sc);
-        phieuNhap = new DanhSachPhieuNhap(sc, nhaCungCap);
+        nhaCungCap = new DanhSachNhaCungCap();
+        phieuNhap = new DanhSachPhieuNhap(nhaCungCap);
+        seri = new DanhSachSeri();   // [SERI]
     }
 
+    // ===================== [UX] TẮT "RÁC KỸ THUẬT" TRÊN MÀN HÌNH =====================
+    // Các lớp danh sách gốc tự in những dòng như "Doc file ... thanh cong!" mỗi lần đọc/ghi file.
+    // Người dùng không cần xem, nên khi đọc/ghi ta tạm chuyển System.out sang một "thùng rác" rồi trả lại.
+
+    /** Thùng rác: mọi thứ in vào đây đều bị bỏ đi. */
+    private static final PrintStream THUNG_RAC = new PrintStream(OutputStream.nullOutputStream());
+
+    /** [UX] Tạm tắt in ra màn hình. Trả về màn hình cũ để đưa vào batIn() sau đó. */
+    public static PrintStream tatIn() {
+        PrintStream manHinhCu = System.out;
+        System.setOut(THUNG_RAC);
+        return manHinhCu;
+    }
+
+    /** [UX] Bật lại màn hình (luôn gọi trong finally để dù lỗi vẫn trả lại được màn hình). */
+    public static void batIn(PrintStream manHinhCu) {
+        System.setOut(manHinhCu);
+    }
+
+    /** [UX] Đọc dữ liệu (không in thông báo kỹ thuật). Lỗi vẫn được ném ra như cũ. */
     public void doc() throws Exception {
+        PrintStream manHinhCu = tatIn();
+        try {
+            docThat();
+        } finally {
+            batIn(manHinhCu);
+        }
+    }
+
+    /** Phần đọc dữ liệu thật sự (code gốc, không đổi). */
+    private void docThat() throws Exception {
         Path current = thuMuc.resolve("CURRENT");
         Path nguon = Paths.get("."); // Nhập dữ liệu tệp cũ ở lần chạy đầu.
         boolean phienBan = Files.exists(current);
@@ -53,11 +87,23 @@ public class DuLieuCuaHang {
         if (Files.exists(nguon.resolve("NhaCungCap.txt"))) nhaCungCap.docFile(nguon.resolve("NhaCungCap.txt").toString());
         if (Files.exists(nguon.resolve("PhieuNhap.txt"))) phieuNhap.docFile(nguon.resolve("PhieuNhap.txt").toString());
         if (Files.exists(nguon.resolve("HoaDon.txt"))) hoaDon.docFile(nguon.resolve("HoaDon.txt").toString());
+        if (Files.exists(nguon.resolve("SeriSanPham.txt"))) seri.docFile(nguon.resolve("SeriSanPham.txt").toString());   // [SERI]
         // Bảo vệ nhập dữ liệu cũ: không để bộ đọc âm thầm bỏ dòng.
         kiemTraSoLuong(nguon);
     }
 
+    /** [UX] Lưu dữ liệu (không in thông báo kỹ thuật). Lỗi vẫn được ném ra như cũ. */
     public void luu() throws IOException {
+        PrintStream manHinhCu = tatIn();
+        try {
+            luuThat();
+        } finally {
+            batIn(manHinhCu);
+        }
+    }
+
+    /** Phần lưu dữ liệu thật sự (code gốc, không đổi). */
+    private void luuThat() throws IOException {
         Files.createDirectories(thuMuc);
         String ma = UUID.randomUUID().toString();
         Path moi = Files.createDirectory(thuMuc.resolve(ma));
@@ -68,6 +114,7 @@ public class DuLieuCuaHang {
             nhanVien.ghiFile(moi.resolve("NhanVien.txt").toString());
             nhaCungCap.ghiFile(moi.resolve("NhaCungCap.txt").toString());
             phieuNhap.ghiFile(moi.resolve("PhieuNhap.txt").toString());
+            seri.ghiFile(moi.resolve("SeriSanPham.txt").toString());   // [SERI]
             for (String ten : CAC_TEP) kiemTraTep(moi.resolve(ten), ten);
             Path conTroTam = thuMuc.resolve("CURRENT-" + ma + ".tmp");
             Files.writeString(conTroTam, ma + "\n", StandardCharsets.UTF_8);
@@ -92,6 +139,7 @@ public class DuLieuCuaHang {
                 };
                 case "HoaDon.txt" -> a[0].equals("BAN_LE") ? 6 : a[0].equals("BAN_SI") ? 7 : -1;
                 case "ChiTietHoaDon.txt", "KhachHang.txt", "NhaCungCap.txt" -> 4;
+                case "SeriSanPham.txt" -> 5;   // [SERI] seri;maSP;trangThai;maPhieuNhap;maHoaDon
                 case "NhanVien.txt" -> a.length == 8 ? 8 : 5; // 8 cột (có cột tài khoản) hoặc 5 cột (file cũ)
                 case "PhieuNhap.txt" -> a[0].equals("PN") ? 5 : a[0].equals("CT") ? 7 : -1;
                 default -> -1;
@@ -142,8 +190,23 @@ public class DuLieuCuaHang {
                 || dem(p,"NhanVien.txt",null) != nhanVien.layDanhSach().length
                 || dem(p,"NhaCungCap.txt",null) != nhaCungCap.layDanhSach().length
                 || dem(p,"PhieuNhap.txt","PN;") != phieuNhap.layDanhSach().length
-                || dem(p,"PhieuNhap.txt","CT;") != chiTietPN) {
+                || dem(p,"PhieuNhap.txt","CT;") != chiTietPN
+                || dem(p,"SeriSanPham.txt",null) != seri.soLuong()) {   // [SERI]
             throw new IOException("Có dòng dữ liệu bị bỏ qua hoặc mất liên kết. Dừng để bảo toàn tệp cũ.");
+        }
+        // [SERI] Mỗi máy trong kho có đúng một seri: số seri TRONG_KHO phải bằng tồn kho của từng sản phẩm,
+        //        và seri nào cũng phải thuộc một sản phẩm có thật.
+        for (SanPham sp : sanPham.getDsSanPham()) {
+            int soSeri = seri.demTrongKho(sp.getMaSP());
+            if (soSeri != sp.getSoLuong()) {
+                throw new IOException("Sản phẩm " + sp.getMaSP() + " tồn " + sp.getSoLuong()
+                        + " máy nhưng có " + soSeri + " seri trong kho.");
+            }
+        }
+        for (SeriSanPham s : seri.layDanhSach()) {
+            if (sanPham.searchSanPham(s.getMaSP()) == null) {
+                throw new IOException("Seri " + s.getMaSeri() + " thuộc sản phẩm không tồn tại: " + s.getMaSP());
+            }
         }
     }
 }

@@ -1,5 +1,3 @@
-import java.util.Scanner;
-
 public class HoaDonBanSi extends HoaDon {
     private double phanTramChietKhau; // Vi du: 5.0, 10.0 (%)
     private String tenCongTy;
@@ -50,28 +48,7 @@ public class HoaDonBanSi extends HoaDon {
 
     @Override
     public String getLoaiHoaDon() {
-        return "Ban si (Dai ly)";
-    }
-
-    @Override
-    public void nhap(Scanner sc) {
-        super.nhap(sc);
-        System.out.print("Nhap ten cong ty / dai ly: ");
-        this.tenCongTy = sc.nextLine().trim();
-
-        System.out.print("Nhap phan tram chiet khau (%): ");
-        try {
-            this.phanTramChietKhau = Double.parseDouble(sc.nextLine().trim());
-        } catch (NumberFormatException e) {
-            this.phanTramChietKhau = 0.0;
-        }
-    }
-
-    @Override
-    public void inHoaDon() {
-        super.inHoaDon();
-        System.out.println("| Thong tin bo sung ban si: Dai ly: " + tenCongTy + " | Chiet khau: " + phanTramChietKhau + "%");
-        System.out.println("+--------------------------------------------------------------------------+");
+        return "Bán sỉ";
     }
 
     @Override

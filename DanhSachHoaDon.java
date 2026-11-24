@@ -1,6 +1,5 @@
 import java.io.*;
 import java.util.Arrays;
-import java.util.Scanner;
 
 public class DanhSachHoaDon implements IFileIO {
     // Lop mang cac doi tuong (Array) - Khong dung ArrayList de dat tron diem OOP
@@ -34,13 +33,11 @@ public class DanhSachHoaDon implements IFileIO {
     // 1. THEM HOA DON (Co che tu dong mo rong mang Arrays.copyOf)
     public boolean themHoaDon(HoaDon hd) {
         if (hd == null) {
-            System.out.println("Hoa don khong hop le!");
             return false;
         }
 
         if (timHoaDon(hd.getMaHD()) != null) {
-            System.out.println("Trung ma hoa don: " + hd.getMaHD() + "! Khong the them.");
-            return false;
+            return false;   // trung ma hoa don thi khong them
         }
 
         // Mo rong mang neu het suc chua
@@ -50,7 +47,6 @@ public class DanhSachHoaDon implements IFileIO {
 
         ds[soLuong] = hd;
         soLuong++;
-        System.out.println("Them hoa don " + hd.getMaHD() + " thanh cong!");
         return true;
     }
 
@@ -63,97 +59,6 @@ public class DanhSachHoaDon implements IFileIO {
             }
         }
         return null;
-    }
-
-    // 3. XOA HOA DON THEO MA (Thuat toan don mang)
-    public boolean xoaHoaDon(String maHD) {
-        int viTri = -1;
-        for (int i = 0; i < soLuong; i++) {
-            if (ds[i].getMaHD().equalsIgnoreCase(maHD.trim())) {
-                viTri = i;
-                break;
-            }
-        }
-
-        if (viTri == -1) {
-            System.out.println("Khong tim thay hoa don can xoa: " + maHD);
-            return false;
-        }
-
-        // Don mang
-        for (int i = viTri; i < soLuong - 1; i++) {
-            ds[i] = ds[i + 1];
-        }
-        ds[soLuong - 1] = null;
-        soLuong--;
-        System.out.println("Xoa thanh cong hoa don: " + maHD);
-        return true;
-    }
-
-    // 4. SUA THONG TIN HOA DON
-    public boolean suaHoaDon(String maHD, Scanner sc) {
-        HoaDon hd = timHoaDon(maHD);
-        if (hd == null) {
-            System.out.println("Khong tim thay hoa don de sua: " + maHD);
-            return false;
-        }
-
-        System.out.println("\n--- SUA THONG TIN HOA DON " + maHD + " ---");
-        System.out.print("Nhap ngay lap moi (Enter de giu nguyen: " + hd.getNgayLap() + "): ");
-        String ngay = sc.nextLine().trim();
-        if (!ngay.isEmpty()) {
-            if (HoaDon.kiemTraNgayHopLe(ngay)) {
-                hd.setNgayLap(ngay);
-            } else {
-                System.out.println("Ngay khong dung dinh dang, giu nguyen ngay cu!");
-            }
-        }
-
-        System.out.print("Nhap ma khach hang moi (Enter de giu nguyen: " + hd.getMaKH() + "): ");
-        String kh = sc.nextLine().trim();
-        if (!kh.isEmpty()) hd.setMaKH(kh);
-
-        System.out.print("Nhap ma nhan vien moi (Enter de giu nguyen: " + hd.getMaNV() + "): ");
-        String nv = sc.nextLine().trim();
-        if (!nv.isEmpty()) hd.setMaNV(nv);
-
-        if (hd instanceof HoaDonBanLe) {
-            HoaDonBanLe hdl = (HoaDonBanLe) hd;
-            System.out.print("Nhap diem tich luy su dung moi (Enter de giu nguyen: " + hdl.getDiemTichLuySuDung() + "): ");
-            String d = sc.nextLine().trim();
-            if (!d.isEmpty()) {
-                try {
-                    hdl.setDiemTichLuySuDung(Integer.parseInt(d));
-                } catch (NumberFormatException ignored) {}
-            }
-        } else if (hd instanceof HoaDonBanSi) {
-            HoaDonBanSi hds = (HoaDonBanSi) hd;
-            System.out.print("Nhap chiet khau % moi (Enter de giu nguyen: " + hds.getPhanTramChietKhau() + "): ");
-            String ck = sc.nextLine().trim();
-            if (!ck.isEmpty()) {
-                try {
-                    hds.setPhanTramChietKhau(Double.parseDouble(ck));
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-
-        System.out.println("Cap nhat thong tin hoa don thanh cong!");
-        return true;
-    }
-
-    // 5. TIM KIEM THEO MA KHACH HANG
-    public void timKiemTheoMaKH(String maKH) {
-        boolean timThay = false;
-        System.out.println("\n=== DANH SACH HOA DON CUA KHACH HANG: " + maKH + " ===");
-        for (int i = 0; i < soLuong; i++) {
-            if (ds[i].getMaKH().equalsIgnoreCase(maKH.trim())) {
-                ds[i].inHoaDon();
-                timThay = true;
-            }
-        }
-        if (!timThay) {
-            System.out.println("Khong co hoa don nao cua khach hang nay.");
-        }
     }
 
     // 6. TINH TONG DOANH THU (Su dung da hinh qua ds[i].getTongTien())
@@ -188,22 +93,6 @@ public class DanhSachHoaDon implements IFileIO {
                 }
             }
         }
-        System.out.println("Da sap xep danh sach hoa don theo tong tien giam dan!");
-    }
-
-    // 9. HIEN THI TOAN BO DANH SACH (Goi inHoaDon() da hinh)
-    public void hienThi() {
-        if (soLuong == 0) {
-            System.out.println("Danh sach hoa don dang trong!");
-            return;
-        }
-
-        System.out.println("\n============================================================================");
-        System.out.println("                  DANH SACH TOAN BO HOA DON (" + soLuong + " hoa don)");
-        System.out.println("============================================================================");
-        for (int i = 0; i < soLuong; i++) {
-            ds[i].inHoaDon();
-        }
     }
 
     // 10. GHI FILE TEXT (Cai dat tu interface IFileIO)
@@ -224,7 +113,6 @@ public class DanhSachHoaDon implements IFileIO {
                 }
             }
             if (pwHD.checkError() || pwCT.checkError()) throw new IOException("Lỗi ghi hóa đơn hoặc chi tiết");
-            System.out.println("Ghi du lieu thanh cong vao " + fileHD + " va " + FILE_CHI_TIET + "!");
         } catch (Exception e) {
             throw new IllegalStateException("Không thể đọc/ghi dữ liệu", e);
         }
@@ -240,7 +128,6 @@ public class DanhSachHoaDon implements IFileIO {
         String fileHD = (duongDan != null && !duongDan.isEmpty()) ? duongDan : FILE_HOA_DON;
         File fHD = new File(fileHD);
         if (!fHD.exists()) {
-            System.out.println("File " + fileHD + " khong ton tai!");
             return;
         }
 
@@ -267,7 +154,6 @@ public class DanhSachHoaDon implements IFileIO {
                     themHoaDon(hds);
                 }
             }
-            System.out.println("Doc file " + fileHD + " thanh cong! So hoa don: " + soLuong);
         } catch (Exception e) {
             throw new IllegalStateException("Không thể đọc/ghi dữ liệu", e);
         }
@@ -277,7 +163,6 @@ public class DanhSachHoaDon implements IFileIO {
         if (fCT.exists()) {
             try (BufferedReader brCT = new BufferedReader(new FileReader(fCT, java.nio.charset.StandardCharsets.UTF_8))) {
                 String line;
-                int demCT = 0;
                 while ((line = brCT.readLine()) != null) {
                     if (line.trim().isEmpty()) continue;
                     String[] p = line.split(";");
@@ -290,11 +175,9 @@ public class DanhSachHoaDon implements IFileIO {
                         HoaDon hd = timHoaDon(maHD);
                         if (hd != null) {
                             hd.themChiTiet(new ChiTietHoaDon(maHD, maSP, sl, gia));
-                            demCT++;
                         }
                     }
                 }
-                System.out.println("Doc file " + FILE_CHI_TIET + " thanh cong! Da nap " + demCT + " chi tiet san pham vao cac hoa don.");
             } catch (Exception e) { throw new IllegalStateException("Lỗi đọc chi tiết hóa đơn", e); }
         }
     }

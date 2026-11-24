@@ -11,5 +11,6 @@ public enum ChucNang {
     NHAP_HANG,      // Lập / xem phiếu nhập
     NHA_CUNG_CAP,   // Quản lý nhà cung cấp
     NHAN_VIEN,      // Quản lý nhân viên
-    TAI_KHOAN       // Quản lý tài khoản đăng nhập (chỉ Admin)
+    TAI_KHOAN,      // Quản lý tài khoản đăng nhập (chỉ Admin)
+    THONG_KE        // [UX] Thống kê doanh thu, sản phẩm bán chạy, cảnh báo hết hàng (Quản lý và Admin)
 }

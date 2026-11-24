@@ -1,5 +1,4 @@
 import java.util.Arrays;
-import java.util.Scanner;
 
 public abstract class HoaDon {
     protected String maHD;
@@ -166,58 +165,6 @@ public abstract class HoaDon {
     // Tong tien thuc thanh toan
     public double getTongTien() {
         return Math.max(0, tinhTongTienGoc() - tinhGiamGia());
-    }
-
-    // Nhap thong tin co ban cua hoa don tu ban phim
-    public void nhap(Scanner sc) {
-        System.out.print("Nhap ma hoa don (hoac Enter de tu sinh): ");
-        String ma = sc.nextLine().trim();
-        if (ma.isEmpty()) {
-            this.maHD = sinhMaTuDong();
-            System.out.println("Ma hoa don tu dong: " + this.maHD);
-        } else {
-            this.maHD = ma;
-        }
-
-        do {
-            System.out.print("Nhap ngay lap (dd/MM/yyyy): ");
-            this.ngayLap = sc.nextLine().trim();
-            if (!kiemTraNgayHopLe(this.ngayLap)) {
-                System.out.println("Dinh dang ngay khong hop le! Vui long nhap lai (vd: 15/10/2026).");
-            }
-        } while (!kiemTraNgayHopLe(this.ngayLap));
-
-        System.out.print("Nhap ma khach hang: ");
-        this.maKH = sc.nextLine().trim();
-
-        System.out.print("Nhap ma nhan vien lap: ");
-        this.maNV = sc.nextLine().trim();
-    }
-
-    public void inHoaDon() {
-        System.out.println("\n+--------------------------------------------------------------------------+");
-        System.out.printf("| %-72s |\n", "HOA DON: " + maHD + " (" + getLoaiHoaDon() + ")");
-        System.out.println("+--------------------------------------------------------------------------+");
-        System.out.printf("| Ngay lap       : %-55s |\n", ngayLap);
-        System.out.printf("| Ma khach hang  : %-55s |\n", maKH);
-        System.out.printf("| Ma nhan vien   : %-55s |\n", maNV);
-        System.out.println("+--------------------------------------------------------------------------+");
-        System.out.println("|                            CHI TIET SAN PHAM                             |");
-        System.out.println("+--------------------------------------------------------------------------+");
-
-        if (soLuongChiTiet == 0) {
-            System.out.println("| (Chua co chi tiet san pham nao)                                          |");
-        } else {
-            for (int i = 0; i < soLuongChiTiet; i++) {
-                dsChiTiet[i].hienThi();
-            }
-        }
-
-        System.out.println("+--------------------------------------------------------------------------+");
-        System.out.printf("| Tong tien goc  : %-55.2f |\n", tinhTongTienGoc());
-        System.out.printf("| Giam gia       : %-55.2f |\n", tinhGiamGia());
-        System.out.printf("| THANH TOAN     : %-55.2f |\n", getTongTien());
-        System.out.println("+--------------------------------------------------------------------------+");
     }
 
     // Chuoi dinh dang de ghi xuong file text: Loai;maHD;ngayLap;maKH;maNV;thongSoRieng

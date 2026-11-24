@@ -54,5 +54,4 @@ public abstract class Nguoi{
         }
         this.soDienThoai = soDienThoai;
     }
-    public abstract void hienThi();
 }

@@ -55,19 +55,6 @@ public class PhieuNhap {
         return tong;
     }
 
-    // in phieu nhap ra man hinh
-    public void hienThi() {
-        System.out.println("Phieu nhap: " + maPN + " - Ngay: " + ngayNhap
-                + " - NCC: " + maNCC + " - NV: " + maNV);
-        for (ChiTietPhieuNhap ct : dsChiTiet) {
-            NhapLieu nl = ct.getNhapLieu();
-            System.out.println("  - " + ct.getMaCTPN() + " | SP: " + nl.getMaSP()
-                    + " | SL: " + nl.getSoLuongNhap() + " | Gia: " + nl.getGiaNhap()
-                    + " | Thanh tien: " + ct.tinhThanhTien());
-        }
-        System.out.println("Tong tien: " + tinhTongTien());
-    }
-
     @Override
     public String toString() {
         return "PhieuNhap{maPN=" + maPN + ", ngayNhap=" + ngayNhap

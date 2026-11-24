@@ -1,6 +1,5 @@
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 public class DanhSachSanPham implements ghiDocFile {
     protected int soLuong;
@@ -27,18 +26,6 @@ public class DanhSachSanPham implements ghiDocFile {
         dsSanPham.add(sp);
         System.out.println("✔ Thêm sản phẩm thành công vào danh sách!");
     }
-    public void hienThiDanhSach(){
-        if(dsSanPham.isEmpty()){
-            System.out.println("Danh sách sản phẩm hiện đang trống");
-        }
-        for(int i=0; i< dsSanPham.size();i++){
-            System.out.print((i + 1) + ". ");
-            dsSanPham.get(i).hienthi(); // Gọi phương thức hiển thị của từng sản phẩm
-            // Gọi phương thức abstract tinhGiaBan() đã được override ở lớp con
-            System.out.println("   ➔ Giá bán thực tế: " + dsSanPham.get(i).tinhGiaBan());
-            System.out.println("-----------------------------------------------------");
-        }
-    }
     public SanPham searchSanPham(String maSP){
         for(SanPham sp:dsSanPham){
             if(sp.getMaSP().equalsIgnoreCase(maSP)){
@@ -55,37 +42,6 @@ public class DanhSachSanPham implements ghiDocFile {
         }
         return false;
 
-    }
-    public boolean suaSanPham(String maSP, Scanner sc) {
-        SanPham sp = searchSanPham(maSP);
-        if (sp == null) {
-            System.out.println(" Không tìm thấy sản phẩm có mã: " + maSP);
-            return false;
-        }
-
-        System.out.println("\n--- SỬA THÔNG TIN SẢN PHẨM " + maSP + " ---");
-        System.out.print("Nhập tên mới (Enter để giữ nguyên [" + sp.getTenSP() + "]): ");
-        String ten = sc.nextLine().trim();
-        if (!ten.isEmpty()) sp.setTenSP(ten);
-
-        System.out.print("Nhập đơn giá mới (Enter để giữ nguyên [" + sp.getDonGia() + "]): ");
-        String giaStr = sc.nextLine().trim();
-        if (!giaStr.isEmpty()) {
-            try {
-                sp.setDonGia(Double.parseDouble(giaStr));
-            } catch (NumberFormatException ignored) {}
-        }
-
-        System.out.print("Nhập số lượng mới (Enter để giữ nguyên [" + sp.getSoLuong() + "]): ");
-        String slStr = sc.nextLine().trim();
-        if (!slStr.isEmpty()) {
-            try {
-                sp.setSoLuong(Integer.parseInt(slStr));
-            } catch (NumberFormatException ignored) {}
-        }
-
-        System.out.println("Cập nhật thông tin sản phẩm thành công!");
-        return true;
     }
     @Override
     public void ghiFile(String duongDan) {

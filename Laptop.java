@@ -1,5 +1,3 @@
-import java.util.Scanner;
-
 public class Laptop  extends SanPham{
     protected String CPU;
     protected int RAM;
@@ -43,21 +41,5 @@ public class Laptop  extends SanPham{
     @Override
     public double tinhGiaBan(){
         return getDonGia();
-    }
-    @Override
-    public void hienthi(){
-        super.hienthi();
-        System.out.println("  [Laptop] CPU: " + CPU + " | RAM: " + RAM + "GB | SSD: " + dungLuongSSD + "GB");
-    }
-    @Override
-    public void nhap(Scanner sc){
-        this.maSP = SanPham.sinhMa("LT");
-        super.nhap(sc);
-        System.out.println("Nhập thông tin CPU");
-        CPU=sc.nextLine();
-        System.out.println("Nhập thông tin RAM");
-        RAM=Integer.parseInt(sc.nextLine());
-        System.out.println("Nhập thông tin dung lượng SSD");
-        dungLuongSSD=Integer.parseInt(sc.nextLine());
     }
 }

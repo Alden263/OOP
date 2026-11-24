@@ -94,10 +94,4 @@ public class TaiKhoan {
     public boolean dangNhap(String tenDangNhap, String matKhau) {
         return this.tenDangNhap.equalsIgnoreCase(tenDangNhap) && kiemTraMatKhau(matKhau);
     }
-
-    /** In thông tin tài khoản (không in mật khẩu). */
-    public void hienThi() {
-        System.out.println("Ten dang nhap: " + tenDangNhap);
-        System.out.println("Quyen: " + quyenHan.getTenQuyen());
-    }
 }

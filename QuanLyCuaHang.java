@@ -2,6 +2,7 @@ import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
@@ -50,7 +51,7 @@ public class QuanLyCuaHang {
         dangChay = true;
         System.out.println("\n===== " + tenCuaHang + " =====");
         System.out.println("Bán trực tiếp tại quầy. Mỗi giao dịch được ghi theo nhân viên đang đăng nhập.");
-        System.out.println("Dữ liệu: " + thuMucDuLieu.toAbsolutePath());
+        // [UX] Đã bỏ dòng in đường dẫn thư mục dữ liệu (người dùng không cần xem).
         while (dangChay) {
             try {
                 // Chưa đăng nhập thì bắt đăng nhập trước; đăng nhập xong mới vào menu chính.
@@ -65,7 +66,7 @@ public class QuanLyCuaHang {
     }
 
     private void napDuLieu() throws Exception {
-        DuLieuCuaHang moi = new DuLieuCuaHang(sc, thuMucDuLieu);
+        DuLieuCuaHang moi = new DuLieuCuaHang(thuMucDuLieu);
         moi.doc();
         duLieu = moi; // Chỉ thay dữ liệu đang dùng khi đọc xong toàn bộ.
     }
@@ -132,7 +133,7 @@ public class QuanLyCuaHang {
             System.out.println("\n===== ĐĂNG NHẬP =====");
             String ten = chuoi("Tên đăng nhập (nhập 0 để thoát): ");
             if (ten.equals("0")) return false;
-            String matKhau = chuoi("Mật khẩu: ");
+            String matKhau = nhapMatKhau("Mật khẩu: ");   // [UX] ẩn ký tự khi gõ (xem nhapMatKhau)
             NhanVien nv = duLieu.nhanVien.dangNhap(ten, matKhau);
             if (nv != null) {
                 maNguoiDung = nv.getMa();   // ghi nhớ ai đang dùng chương trình
@@ -150,12 +151,12 @@ public class QuanLyCuaHang {
     private void doiMatKhau() {
         thayDoi(() -> {
             TaiKhoan tk = nguoiDung().getTaiKhoan();
-            if (!tk.kiemTraMatKhau(chuoi("Mật khẩu hiện tại: "))) {
+            if (!tk.kiemTraMatKhau(nhapMatKhau("Mật khẩu hiện tại: "))) {   // [UX] cả 3 lần nhập mật khẩu đều ẩn ký tự
                 System.out.println("Mật khẩu hiện tại không đúng.");
                 return false;
             }
-            String moi = chuoi("Mật khẩu mới (tối thiểu 3 ký tự): ");
-            if (!moi.equals(chuoi("Nhập lại mật khẩu mới: "))) {
+            String moi = nhapMatKhau("Mật khẩu mới (tối thiểu 3 ký tự): ");
+            if (!moi.equals(nhapMatKhau("Nhập lại mật khẩu mới: "))) {
                 System.out.println("Hai lần nhập không giống nhau.");
                 return false;
             }
@@ -207,6 +208,8 @@ public class QuanLyCuaHang {
         themMuc(ten, viec, muc(ChucNang.NHA_CUNG_CAP) >= QuyenHan.XEM, "Quản lý nhà cung cấp", this::menuNhaCungCap);
         themMuc(ten, viec, muc(ChucNang.NHAN_VIEN) >= QuyenHan.XEM, "Quản lý nhân viên", this::menuNhanVien);
         themMuc(ten, viec, muc(ChucNang.TAI_KHOAN) >= QuyenHan.XEM, "Quản lý tài khoản", this::menuTaiKhoan);
+        // [UX] Thống kê: chỉ Quản lý và Admin thấy (Nhân viên có mức KHONG nên mục này bị ẩn).
+        themMuc(ten, viec, muc(ChucNang.THONG_KE) >= QuyenHan.XEM, "Thống kê", this::menuThongKe);
         themMuc(ten, viec, true, "Đổi mật khẩu", this::doiMatKhau);   // ai cũng được đổi mật khẩu của mình
 
         int chon = chonMenu("MENU CHÍNH", "Đăng xuất", ten.toArray(new String[0]));
@@ -260,21 +263,19 @@ public class QuanLyCuaHang {
                 // Xóa tài khoản: nhân viên vẫn còn trong danh sách, chỉ mất khả năng đăng nhập.
                 // Không cho tự xóa mình để luôn còn ít nhất một Admin.
                 NhanVien nv = timNhanVienCoTaiKhoan(true); if (nv == null) return false;
+                // [UX] Hỏi xác nhận, in rõ tài khoản sắp xóa
+                if (!xacNhanXoa("tài khoản " + nv.getTaiKhoan().getTenDangNhap()
+                        + " của nhân viên " + nv.getMa() + " - " + nv.getHoTen())) return false;
                 nv.setTaiKhoan(null);
+                System.out.println("Đã xóa tài khoản. Nhân viên " + nv.getMa() + " vẫn còn trong danh sách.");
                 return true;
             });
         }
     }
 
-    /** In danh sách tài khoản: mã nhân viên | họ tên | tên đăng nhập | quyền. */
+    /** In danh sách tài khoản dạng bảng: mã nhân viên | họ tên | tên đăng nhập | quyền. */
     private void hienThiTaiKhoan() {
-        for (NhanVien nv : duLieu.nhanVien.layDanhSach()) {
-            TaiKhoan tk = nv.getTaiKhoan();
-            String thongTin = (tk == null)
-                    ? "(chưa có tài khoản)"
-                    : tk.getTenDangNhap() + " | " + tk.getQuyenHan().getTenQuyen();
-            System.out.println(nv.getMa() + " | " + nv.getHoTen() + " | " + thongTin);
-        }
+        GiaoDien.taiKhoan(duLieu.nhanVien.layDanhSach());
     }
 
     /**
@@ -312,32 +313,47 @@ public class QuanLyCuaHang {
         return QuyenHan.TAT_CA[so - 1];   // TAT_CA xếp đúng thứ tự: Nhân viên, Quản lý, Admin
     }
 
+    // ===================== [UX] THỐNG KÊ (Quản lý và Admin) =====================
+
+    /** [UX] Menu thống kê: mỗi mục in một bảng (việc tính toán nằm trong lớp ThongKe). */
+    private void menuThongKe() {
+        if (!duocPhep(ChucNang.THONG_KE, QuyenHan.XEM)) return;   // phòng hờ: Nhân viên không vào được
+        while (dangChay) {
+            int chon = chonMenu("THỐNG KÊ", "Quay lại", "Doanh thu theo ngày", "Doanh thu theo nhân viên",
+                    "Sản phẩm bán chạy", "Cảnh báo sắp hết hàng (tồn ≤ " + ThongKe.NGUONG_SAP_HET + ")");
+            if (chon == 0) return;
+            if (chon == 1) ThongKe.doanhThuTheoNgay(duLieu);
+            else if (chon == 2) ThongKe.doanhThuTheoNhanVien(duLieu);
+            else if (chon == 3) ThongKe.sanPhamBanChay(duLieu);
+            else ThongKe.canhBaoSapHetHang(duLieu);
+        }
+    }
+
     private void menuSanPham() {
         while (dangChay) {
             int chon = chonMenuTheoQuyen("SẢN PHẨM", "Quay lại", ChucNang.SAN_PHAM, "Thêm sản phẩm mới (tồn 0)",
                     "Sửa thông tin / giá bán", "Xóa sản phẩm chưa có giao dịch",
-                    "Tìm theo mã / tên / loại", "Hiển thị danh sách", "Xem tồn kho");
+                    "Tìm theo mã / tên / loại / seri", "Hiển thị danh sách", "Xem tồn kho",
+                    "Xem seri theo sản phẩm");   // [SERI] mục 7: bảng seri riêng của từng sản phẩm
             if (chon == 0) return;
             if (chon == 1) thayDoi(() -> {
-                int loai = soNguyen("Loại: 1 Laptop, 2 PC, 3 Linh kiện: ", 1, 3);
-                String ma = maMoi(loai == 1 ? "LT" : loai == 2 ? "PC" : "LK");
-                String ten = chuoi("Tên sản phẩm: ");
-                double gia = soThuc("Giá bán: ", 0, 1e15);
-                SanPham sp;
-                if (loai == 1) sp = new Laptop(ma, ten, gia, 0, chuoi("CPU: "),
-                        soNguyen("RAM (GB): ", 1, 100000), soNguyen("SSD (GB): ", 1, 10000000));
-                else if (loai == 2) sp = new PC(ma, ten, gia, 0, chuoi("CPU: "), chuoi("GPU: "),
-                        soNguyen("RAM (GB): ", 1, 100000), soNguyen("SSD (GB): ", 1, 10000000));
-                else sp = new LinhKien(ma, ten, gia, 0, chuoi("Loại linh kiện: "), chuoi("Hãng sản xuất: "));
-                duLieu.sanPham.themSanPham(sp);
+                // Phần hỏi thông tin được tách ra hàm taoSanPhamMoi() để dùng chung với chức năng nhập hàng.
+                SanPham moi = taoSanPhamMoi();
+                // [UX] themSanPham của lớp gốc tự in "✔ Thêm sản phẩm thành công..." nên chạy im lặng, rồi tự in thông báo rõ hơn.
+                imLang(() -> { duLieu.sanPham.themSanPham(moi); return true; });
+                System.out.println("Đã thêm sản phẩm mới: " + moi.getMaSP() + " - " + moi.getTenSP()
+                        + " (tồn kho 0, dùng chức năng Nhập hàng để nhập máy và seri).");
                 return true;
             });
             else if (chon == 2) thayDoi(() -> {
                 SanPham sp = timSanPham();
                 if (sp == null) return false;
-                String ten = chuoi("Tên mới: ");
-                double gia = soThuc("Giá bán mới: ", 0, 1e15);
+                // [UX] In thông tin hiện tại, mỗi trường nhấn Enter để giữ nguyên
+                GiaoDien.sanPham("THÔNG TIN HIỆN TẠI", java.util.List.of(sp));
+                String ten = chuoiGiuNguyen("Tên", sp.getTenSP());
+                double gia = soThucGiuNguyen("Giá bán", sp.getDonGia(), 0, 1e15);
                 sp.setTenSP(ten); sp.setDonGia(gia);
+                System.out.println("Đã cập nhật sản phẩm " + sp.getMaSP() + ": " + ten + ", giá bán " + Bang.tien(gia) + " đ.");
                 return true; // Không sửa mã/tồn kho trực tiếp.
             });
             else if (chon == 3) thayDoi(() -> {
@@ -346,20 +362,56 @@ public class QuanLyCuaHang {
                 if (coLichSu("SP", sp.getMaSP()) || sp.getSoLuong() != 0) {
                     System.out.println("Không xóa sản phẩm có giao dịch hoặc còn tồn kho."); return false;
                 }
-                return duLieu.sanPham.xoaSanPham(sp.getMaSP());
+                // [UX] Hỏi xác nhận, in rõ sản phẩm sắp xóa
+                if (!xacNhanXoa("sản phẩm " + sp.getMaSP() + " - " + sp.getTenSP())) return false;
+                imLang(() -> duLieu.sanPham.xoaSanPham(sp.getMaSP()));
+                System.out.println("Đã xóa sản phẩm " + sp.getMaSP() + " - " + sp.getTenSP() + ".");
+                return true;
             });
             else if (chon == 4) {
-                String tu = chuoi("Nhập mã / tên / Laptop / PC / LinhKien: ").toLowerCase(java.util.Locale.ROOT);
-                boolean thay = false;
+                String tu = chuoi("Nhập mã / tên / seri / Laptop / PC / LinhKien: ").toLowerCase(java.util.Locale.ROOT);
+                SeriSanPham may = duLieu.seri.tim(tu);   // [SERI] gõ đúng một seri thì ra sản phẩm của máy đó
+                ArrayList<SanPham> ketQua = new ArrayList<>();
                 for (SanPham sp : duLieu.sanPham.getDsSanPham()) {
-                    if ((sp.getMaSP() + " " + sp.getTenSP() + " " + sp.getClass().getSimpleName())
-                            .toLowerCase(java.util.Locale.ROOT).contains(tu)) { sp.hienthi(); thay = true; }
+                    boolean khopSeri = may != null && may.getMaSP().equalsIgnoreCase(sp.getMaSP());
+                    if (khopSeri || (sp.getMaSP() + " " + sp.getTenSP() + " " + sp.getClass().getSimpleName())
+                            .toLowerCase(java.util.Locale.ROOT).contains(tu)) ketQua.add(sp);
                 }
-                if (!thay) System.out.println("Không tìm thấy sản phẩm.");
-            } else if (chon == 5) duLieu.sanPham.hienThiDanhSach();
-            else for (SanPham sp : duLieu.sanPham.getDsSanPham())
-                    System.out.println(sp.getMaSP() + " | " + sp.getTenSP() + " | Tồn: " + sp.getSoLuong());
+                if (ketQua.isEmpty()) System.out.println("Không tìm thấy sản phẩm.");
+                else GiaoDien.sanPham("KẾT QUẢ TÌM SẢN PHẨM", ketQua);
+            } else if (chon == 5) GiaoDien.sanPham("DANH SÁCH SẢN PHẨM", duLieu.sanPham.getDsSanPham());
+            else if (chon == 6) GiaoDien.tonKho(duLieu.sanPham.getDsSanPham());
+            else xemSeriSanPham();   // [SERI]
         }
+    }
+
+    /** [SERI] Bảng seri của MỘT sản phẩm: từng máy còn trong kho hay đã bán, nhập từ phiếu nào, bán ở hóa đơn nào. */
+    private void xemSeriSanPham() {
+        GiaoDien.tonKho(duLieu.sanPham.getDsSanPham());   // in danh sách để người dùng chọn mã
+        SanPham sp = timSanPham();
+        if (sp == null) return;
+        ArrayList<SeriSanPham> ds = duLieu.seri.theoSanPham(sp.getMaSP());
+        GiaoDien.seri("SERI CỦA " + sp.getMaSP() + " - " + sp.getTenSP(), ds);
+        int trongKho = duLieu.seri.demTrongKho(sp.getMaSP());
+        System.out.println("Trong kho: " + trongKho + " máy | Đã bán: " + (ds.size() - trongKho) + " máy");
+    }
+
+    /**
+     * Hỏi thông tin và tạo một sản phẩm mới (tồn kho 0, chưa có máy nào nên chưa có seri).
+     * Dùng chung cho: menu Sản phẩm > Thêm, và Nhập hàng > Sản phẩm mới.
+     */
+    private SanPham taoSanPhamMoi() {
+        int loai = soNguyen("Loại: 1 Laptop, 2 PC, 3 Linh kiện: ", 1, 3);
+        String ma = maMoi(loai == 1 ? "LT" : loai == 2 ? "PC" : "LK");
+        String ten = chuoi("Tên sản phẩm: ");
+        double gia = soThuc("Giá bán: ", 0, 1e15);
+        SanPham sp;
+        if (loai == 1) sp = new Laptop(ma, ten, gia, 0, chuoi("CPU: "),
+                soNguyen("RAM (GB): ", 1, 100000), soNguyen("SSD (GB): ", 1, 10000000));
+        else if (loai == 2) sp = new PC(ma, ten, gia, 0, chuoi("CPU: "), chuoi("GPU: "),
+                soNguyen("RAM (GB): ", 1, 100000), soNguyen("SSD (GB): ", 1, 10000000));
+        else sp = new LinhKien(ma, ten, gia, 0, chuoi("Loại linh kiện: "), chuoi("Hãng sản xuất: "));
+        return sp;
     }
 
     private void menuKhachHang() {
@@ -372,28 +424,57 @@ public class QuanLyCuaHang {
                 KhachHang kh = duLieu.khachHang.timTheoMa(chuoi("Mã khách: "));
                 if (kh == null) { System.out.println("Không tìm thấy khách."); return false; }
                 if (kh.getMa().equalsIgnoreCase("KHLE")) { System.out.println("Không sửa khách lẻ chung."); return false; }
-                String ten = chuoi("Họ tên mới: "); String sdt = dienThoai(); String diaChi = chuoi("Địa chỉ mới: ");
-                KhachHang trung = duLieu.khachHang.timTheoSoDienThoai(sdt);
-                if (trung != null && trung != kh) throw new IllegalArgumentException("Số điện thoại đã có hồ sơ.");
-                kh.setHoTen(ten); kh.setSoDienThoai(sdt); kh.setDiaChi(diaChi); return true;
+                // [UX] In thông tin hiện tại, mỗi trường nhấn Enter để giữ nguyên
+                GiaoDien.khachHang("THÔNG TIN HIỆN TẠI", new KhachHang[] { kh }, duLieu);
+                String ten = chuoiGiuNguyen("Họ tên", kh.getHoTen());
+                String sdt;
+                while (true) {   // số điện thoại của khách khác thì báo ngay và hỏi lại, không bắt gõ lại từ đầu
+                    sdt = dienThoaiGiuNguyen(kh.getSoDienThoai());
+                    KhachHang trung = duLieu.khachHang.timTheoSoDienThoai(sdt);
+                    if (trung == null || trung == kh) break;
+                    System.out.println("Số điện thoại đã có hồ sơ của khách " + trung.getMa() + " - " + trung.getHoTen() + ".");
+                }
+                String diaChi = chuoiGiuNguyen("Địa chỉ", kh.getDiaChi());
+                kh.setHoTen(ten); kh.setSoDienThoai(sdt); kh.setDiaChi(diaChi);
+                System.out.println("Đã cập nhật khách hàng " + kh.getMa() + ".");
+                return true;
             });
             else if (chon == 3) thayDoi(() -> {
                 String ma = chuoi("Mã khách: ");
                 if (ma.equalsIgnoreCase("KHLE") || coLichSu("KH", ma)) {
                     System.out.println("Không xóa khách lẻ chung hoặc khách đã mua hàng."); return false;
                 }
-                return duLieu.khachHang.xoaKhachHang(ma);
+                KhachHang kh = duLieu.khachHang.timTheoMa(ma);
+                if (kh == null) { System.out.println("Không tìm thấy khách."); return false; }
+                // [UX] Hỏi xác nhận, in rõ khách sắp xóa
+                if (!xacNhanXoa("khách hàng " + kh.getMa() + " - " + kh.getHoTen())) return false;
+                imLang(() -> duLieu.khachHang.xoaKhachHang(kh.getMa()));   // lớp gốc tự in "Xóa khách hàng thành công!"
+                System.out.println("Đã xóa khách hàng " + kh.getMa() + " - " + kh.getHoTen() + ".");
+                return true;
             });
             else if (chon == 4) {
                 String tu = chuoi("Mã / tên / số điện thoại: ").toLowerCase(java.util.Locale.ROOT);
-                boolean thay = false;
+                ArrayList<KhachHang> ketQua = new ArrayList<>();
                 for (KhachHang kh : duLieu.khachHang.layDanhSach())
                     if ((kh.getMa()+" "+kh.getHoTen()+" "+kh.getSoDienThoai()).toLowerCase(java.util.Locale.ROOT).contains(tu)) {
-                        kh.hienThi(); thay = true;
+                        ketQua.add(kh);
                     }
-                if (!thay) System.out.println("Không tìm thấy khách.");
-            } else if (chon == 5) duLieu.khachHang.hienThi();
-            else duLieu.hoaDon.timKiemTheoMaKH(chuoi("Mã khách: "));
+                if (ketQua.isEmpty()) System.out.println("Không tìm thấy khách.");
+                else GiaoDien.khachHang("KẾT QUẢ TÌM KHÁCH HÀNG", ketQua.toArray(new KhachHang[0]), duLieu);
+            } else if (chon == 5) GiaoDien.khachHang("DANH SÁCH KHÁCH HÀNG", duLieu.khachHang.layDanhSach(), duLieu);
+            else lichSuKhach(chuoi("Mã khách: "));
+        }
+    }
+
+    /** Bảng các hóa đơn của một khách hàng. */
+    private void lichSuKhach(String maKH) {
+        ArrayList<HoaDon> ds = new ArrayList<>();
+        for (HoaDon hd : duLieu.hoaDon.getDs()) if (hd.getMaKH().equalsIgnoreCase(maKH)) ds.add(hd);
+        if (ds.isEmpty()) System.out.println("Khách " + maKH + " chưa có hóa đơn nào.");
+        else GiaoDien.danhSachHoaDon("LỊCH SỬ MUA HÀNG CỦA " + maKH, ds, duLieu);
+        // [UX] Tích điểm: in điểm đang có của khách (khách có hồ sơ, không phải khách lẻ chung)
+        if (DiemTichLuy.coTichDiem(maKH) && duLieu.khachHang.timTheoMa(maKH) != null) {
+            System.out.println("Điểm tích lũy hiện có: " + DiemTichLuy.diemHienCo(maKH, duLieu.hoaDon) + " điểm.");
         }
     }
 
@@ -418,26 +499,43 @@ public class QuanLyCuaHang {
             });
             else if (chon == 2) thayDoi(() -> {
                 NhanVien nv = timNhanVien(); if (nv == null) return false;
-                String ten = chuoi("Họ tên mới: "); String sdt = dienThoai();
-                String chucVu = chuoi("Chức vụ mới: "); double luong = soThuc("Lương mới: ",0,1e15);
-                nv.setHoTen(ten); nv.setSoDienThoai(sdt); nv.setChucVu(chucVu); nv.setLuong(luong); return true;
+                // [UX] In thông tin hiện tại, mỗi trường nhấn Enter để giữ nguyên
+                GiaoDien.nhanVien("THÔNG TIN HIỆN TẠI", new NhanVien[] { nv });
+                String ten = chuoiGiuNguyen("Họ tên", nv.getHoTen());
+                String sdt = dienThoaiGiuNguyen(nv.getSoDienThoai());
+                String chucVu = chuoiGiuNguyen("Chức vụ", nv.getChucVu());
+                // [UX] Không ai được TỰ sửa lương của chính mình, trừ Admin (người có toàn quyền trên tài khoản).
+                //      Quản lý muốn đổi lương của mình phải nhờ Admin. Các thông tin khác của mình vẫn sửa được.
+                double luong = nv.getLuong();
+                boolean tuSuaLuong = nv.getMa().equalsIgnoreCase(maNguoiDung) && muc(ChucNang.TAI_KHOAN) < QuyenHan.TOAN;
+                if (tuSuaLuong) System.out.println("Lương: bạn không được tự sửa lương của chính mình, hãy nhờ Admin (giữ nguyên "
+                        + Bang.tien(luong) + " đ).");
+                else luong = soThucGiuNguyen("Lương", luong, 0, 1e15);
+                nv.setHoTen(ten); nv.setSoDienThoai(sdt); nv.setChucVu(chucVu); nv.setLuong(luong);
+                System.out.println("Đã cập nhật nhân viên " + nv.getMa() + ".");
+                return true;
             });
             else if (chon == 3) thayDoi(() -> {
                 NhanVien nv = timNhanVien(); if (nv == null) return false;
                 // Nhân viên còn tài khoản thì phải để Admin xóa tài khoản trước (tránh lỡ xóa mất Admin).
                 if (nv.getTaiKhoan() != null) { System.out.println("Nhân viên đang có tài khoản, nhờ Admin xóa tài khoản trước."); return false; }
                 if (coLichSu("NV", nv.getMa())) { System.out.println("Nhân viên đã có giao dịch, không xóa."); return false; }
-                duLieu.nhanVien.xoaNhanVien(nv); return true;
+                // [UX] Hỏi xác nhận, in rõ nhân viên sắp xóa
+                if (!xacNhanXoa("nhân viên " + nv.getMa() + " - " + nv.getHoTen())) return false;
+                duLieu.nhanVien.xoaNhanVien(nv);
+                System.out.println("Đã xóa nhân viên " + nv.getMa() + " - " + nv.getHoTen() + ".");
+                return true;
             });
             else if (chon == 4) {
                 String tu = chuoi("Mã hoặc tên nhân viên: ").toLowerCase(java.util.Locale.ROOT);
-                boolean thay = false;
+                ArrayList<NhanVien> ketQua = new ArrayList<>();
                 for (NhanVien nv : duLieu.nhanVien.layDanhSach())
                     if ((nv.getMa()+" "+nv.getHoTen()).toLowerCase(java.util.Locale.ROOT).contains(tu)) {
-                        nv.hienThi(); thay = true;
+                        ketQua.add(nv);
                     }
-                if (!thay) System.out.println("Không tìm thấy nhân viên.");
-            } else duLieu.nhanVien.hienThi();
+                if (ketQua.isEmpty()) System.out.println("Không tìm thấy nhân viên.");
+                else GiaoDien.nhanVien("KẾT QUẢ TÌM NHÂN VIÊN", ketQua.toArray(new NhanVien[0]));
+            } else GiaoDien.nhanVien("DANH SÁCH NHÂN VIÊN", duLieu.nhanVien.layDanhSach());
         }
     }
 
@@ -445,31 +543,58 @@ public class QuanLyCuaHang {
         while (dangChay) {
             int chon = chonMenuTheoQuyen("NHÀ CUNG CẤP", "Quay lại", ChucNang.NHA_CUNG_CAP, "Thêm", "Sửa", "Xóa nếu chưa có phiếu nhập", "Tìm", "Xem danh sách");
             if (chon == 0) return;
-            if (chon == 1) thayDoi(() -> duLieu.nhaCungCap.them(new NhaCungCap(
-                    duLieu.nhaCungCap.sinhMa(), chuoi("Tên nhà cung cấp: "), chuoi("Địa chỉ: "), dienThoai())));
+            if (chon == 1) thayDoi(() -> {
+                NhaCungCap moi = new NhaCungCap(duLieu.nhaCungCap.sinhMa(), chuoi("Tên nhà cung cấp: "),
+                        chuoi("Địa chỉ: "), dienThoai());
+                if (!duLieu.nhaCungCap.them(moi)) return false;
+                System.out.println("Đã thêm nhà cung cấp " + moi.getMaNCC() + " - " + moi.getTenNCC() + ".");   // [UX]
+                return true;
+            });
             else if (chon == 2) thayDoi(() -> {
                 NhaCungCap ncc = duLieu.nhaCungCap.timTheoMa(chuoi("Mã nhà cung cấp: "));
                 if (ncc == null) { System.out.println("Không tìm thấy nhà cung cấp."); return false; }
-                String ten = chuoi("Tên mới: "); String diaChi = chuoi("Địa chỉ mới: "); String sdt = dienThoai();
-                ncc.setTenNCC(ten); ncc.setDiaChi(diaChi); ncc.setSoDienThoai(sdt); return true;
+                // [UX] In thông tin hiện tại, mỗi trường nhấn Enter để giữ nguyên
+                GiaoDien.nhaCungCap("THÔNG TIN HIỆN TẠI", new NhaCungCap[] { ncc });
+                String ten = chuoiGiuNguyen("Tên", ncc.getTenNCC());
+                String diaChi = chuoiGiuNguyen("Địa chỉ", ncc.getDiaChi());
+                String sdt = dienThoaiGiuNguyen(ncc.getSoDienThoai());
+                ncc.setTenNCC(ten); ncc.setDiaChi(diaChi); ncc.setSoDienThoai(sdt);
+                System.out.println("Đã cập nhật nhà cung cấp " + ncc.getMaNCC() + ".");
+                return true;
             });
-            else if (chon == 3) thayDoi(() -> duLieu.nhaCungCap.xoa(chuoi("Mã nhà cung cấp: ")));
+            else if (chon == 3) thayDoi(() -> {
+                NhaCungCap ncc = duLieu.nhaCungCap.timTheoMa(chuoi("Mã nhà cung cấp: "));
+                if (ncc == null) { System.out.println("Không tìm thấy nhà cung cấp."); return false; }
+                // [UX] Tự kiểm tra phiếu nhập ở đây để báo lỗi tiếng Việt có dấu (lớp gốc in chữ không dấu)
+                if (duLieu.phieuNhap.coPhieuCuaNCC(ncc.getMaNCC())) {
+                    System.out.println("Không thể xóa nhà cung cấp " + ncc.getMaNCC() + " vì đã có phiếu nhập.");
+                    return false;
+                }
+                if (!xacNhanXoa("nhà cung cấp " + ncc.getMaNCC() + " - " + ncc.getTenNCC())) return false;
+                duLieu.nhaCungCap.xoa(ncc.getMaNCC());
+                System.out.println("Đã xóa nhà cung cấp " + ncc.getMaNCC() + " - " + ncc.getTenNCC() + ".");
+                return true;
+            });
             else if (chon == 4) {
                 NhaCungCap ncc = duLieu.nhaCungCap.timTheoMa(chuoi("Mã nhà cung cấp: "));
-                System.out.println(ncc == null ? "Không tìm thấy nhà cung cấp." : ncc);
-            } else duLieu.nhaCungCap.hienThi();
+                if (ncc == null) System.out.println("Không tìm thấy nhà cung cấp.");
+                else GiaoDien.nhaCungCap("NHÀ CUNG CẤP " + ncc.getMaNCC(), new NhaCungCap[] { ncc });
+            } else GiaoDien.nhaCungCap("DANH SÁCH NHÀ CUNG CẤP", duLieu.nhaCungCap.layDanhSach());
         }
     }
 
     private void menuHoaDon() {
         while (dangChay) {
-            int chon = chonMenu("HÓA ĐƠN ĐÃ BÁN", "Quay lại", "Xem danh sách", "Tìm và in lại theo mã", "Lịch sử theo khách hàng");
+            int chon = chonMenu("HÓA ĐƠN ĐÃ BÁN", "Quay lại", "Xem danh sách", "Tìm và in lại theo mã", "Lịch sử theo khách hàng",
+                    "Tra cứu máy theo seri (bảo hành)");   // [SERI] thêm mục 4
             if (chon == 0) return;
-            if (chon == 1) duLieu.hoaDon.hienThi();
+            if (chon == 1) GiaoDien.danhSachHoaDon("DANH SÁCH HÓA ĐƠN",
+                    java.util.Arrays.asList(duLieu.hoaDon.getDs()), duLieu);
             else if (chon == 2) {
                 HoaDon hd = duLieu.hoaDon.timHoaDon(chuoi("Mã hóa đơn: "));
-                if (hd == null) System.out.println("Không tìm thấy hóa đơn."); else hd.inHoaDon();
-            } else duLieu.hoaDon.timKiemTheoMaKH(chuoi("Mã khách: "));
+                if (hd == null) System.out.println("Không tìm thấy hóa đơn."); else GiaoDien.hoaDon(hd, duLieu);
+            } else if (chon == 3) lichSuKhach(chuoi("Mã khách: "));
+            else traCuuSeri();   // [SERI]
         }
     }
 
@@ -483,62 +608,206 @@ public class QuanLyCuaHang {
         if (!duocPhep(ChucNang.BAN_HANG, QuyenHan.GHI)) return false;
         NhanVien nv = nguoiDung();
         System.out.println("Nhân viên lập: " + nv.getHoTen() + " (" + nv.getMa() + ")");
-        int luaChonKH = soNguyen("Khách: 1 Có hồ sơ, 2 Thêm mới, 3 Khách lẻ: ",1,3);
-        KhachHang kh;
-        if (luaChonKH == 1) {
-            String tu = chuoi("Mã khách hoặc số điện thoại: ");
-            kh = duLieu.khachHang.timTheoMa(tu);
-            if (kh == null) kh = duLieu.khachHang.timTheoSoDienThoai(tu);
-            if (kh == null) { System.out.println("Không tìm thấy khách."); return false; }
-        } else if (luaChonKH == 2) kh = themKhach();
-        else {
-            kh = duLieu.khachHang.timTheoMa("KHLE");
-            if (kh == null) {
-                kh = new KhachHang("KHLE","Khách lẻ","0000000000","Tại quầy");
-                duLieu.khachHang.themKhachHang(kh);
-            }
-        }
-        // Chưa có cơ chế tích điểm đồng bộ: bán lẻ dùng 0 điểm để tránh giảm giá tùy ý.
-        HoaDon hd = new HoaDonBanLe(maMoi("HD"), ngayHomNay(), kh.getMa(), nv.getMa(), 0);
+        // [UX] Chọn khách: gõ sai thì HỎI LẠI chứ không hủy cả hóa đơn (xem chonKhachHang)
+        KhachHang kh = chonKhachHang();
+        if (kh == null) { System.out.println("Đã hủy, tồn kho không thay đổi."); return false; }
+        // [UX] Chọn bán lẻ hoặc bán sỉ (xem taoHoaDon)
+        HoaDon hd = taoHoaDon(kh, nv);
+        if (hd == null) { System.out.println("Đã hủy, tồn kho không thay đổi."); return false; }
+        // [SERI] Seri các máy chọn bán, theo từng mã sản phẩm. Seri KHÔNG in trên hóa đơn,
+        //        chỉ lưu vào file seri riêng (SeriSanPham.txt) khi xác nhận thanh toán.
+        HashMap<String, ArrayList<String>> seriBan = new HashMap<>();
         while (true) {
             int chon = chonMenu("HÓA ĐƠN TẠM " + hd.getMaHD(), "Hủy hóa đơn", "Thêm sản phẩm", "Đổi số lượng", "Bỏ sản phẩm", "Xem hóa đơn", "Xác nhận thanh toán");
             if (chon == 0) { System.out.println("Đã hủy, tồn kho không thay đổi."); return false; }
             if (chon == 1) {
-                duLieu.sanPham.hienThiDanhSach();
+                GiaoDien.sanPhamDeBan(duLieu.sanPham.getDsSanPham());   // [UX] bảng gọn, ẩn sản phẩm hết hàng
                 SanPham sp = timSanPham(); if (sp == null) continue;
                 int daChon = 0;
                 for (ChiTietHoaDon ct : hd.getDsChiTiet()) if (ct.getMaSP().equalsIgnoreCase(sp.getMaSP())) daChon = ct.getSoLuong();
                 int conLai = sp.getSoLuong() - daChon;
                 if (conLai <= 0) { System.out.println("Không đủ tồn kho để thêm."); continue; }
                 int sl = soNguyen("Số lượng thêm: ",1,conLai);
+                // [SERI] Bán bao nhiêu máy thì chọn bấy nhiêu seri, để biết chính xác máy nào đã bán cho khách.
+                ArrayList<String> seriChon = chonSeriDeBan(sp, sl, seriBan);
+                if (seriChon == null) continue;   // người dùng gõ 0 để hủy
+                if (!seriBan.containsKey(sp.getMaSP())) seriBan.put(sp.getMaSP(), new ArrayList<>());
+                seriBan.get(sp.getMaSP()).addAll(seriChon);
                 hd.themChiTiet(new ChiTietHoaDon(hd.getMaHD(),sp.getMaSP(),sl,sp.tinhGiaBan()));
+                GiaoDien.gioHang(hd, duLieu);   // [UX] tự in giỏ hàng + tổng tiền
             } else if (chon == 2) {
                 String ma = chuoi("Mã sản phẩm đã chọn: ");
                 ChiTietHoaDon ct = chiTiet(hd, ma);
                 if (ct == null) { System.out.println("Sản phẩm không có trong hóa đơn."); continue; }
                 SanPham sp = duLieu.sanPham.searchSanPham(ma);
                 if (sp.getSoLuong() == 0) { System.out.println("Sản phẩm hết hàng."); continue; }
-                ct.setSoLuong(soNguyen("Số lượng mới: ",1,sp.getSoLuong()));
+                int slMoi = soNguyen("Số lượng mới: ",1,sp.getSoLuong());
+                // [SERI] Đổi số lượng thì chọn lại seri cho đủ số máy mới. Hủy giữa chừng thì giữ lại seri cũ.
+                ArrayList<String> seriCu = seriBan.remove(sp.getMaSP());
+                ArrayList<String> seriMoi = chonSeriDeBan(sp, slMoi, seriBan);
+                if (seriMoi == null) { seriBan.put(sp.getMaSP(), seriCu); continue; }
+                seriBan.put(sp.getMaSP(), seriMoi);
+                ct.setSoLuong(slMoi);
+                GiaoDien.gioHang(hd, duLieu);   // [UX] tự in giỏ hàng + tổng tiền
             } else if (chon == 3) {
-                if (!hd.xoaChiTiet(chuoi("Mã sản phẩm cần bỏ: "))) System.out.println("Không có sản phẩm trong hóa đơn.");
-            } else if (chon == 4) hd.inHoaDon();
+                String ma = chuoi("Mã sản phẩm cần bỏ: ");
+                if (!hd.xoaChiTiet(ma)) System.out.println("Không có sản phẩm trong hóa đơn.");
+                else {
+                    SanPham sp = duLieu.sanPham.searchSanPham(ma);
+                    if (sp != null) seriBan.remove(sp.getMaSP());   // [SERI] bỏ luôn các máy đã chọn
+                    GiaoDien.gioHang(hd, duLieu);   // [UX] tự in giỏ hàng + tổng tiền
+                }
+            } else if (chon == 4) GiaoDien.hoaDon(hd, duLieu);
             else {
                 if (hd.getSoLuongChiTiet() == 0) { System.out.println("Hóa đơn phải có sản phẩm."); continue; }
-                hd.inHoaDon();
+                hoiDungDiem(hd, kh);   // [UX] tích điểm: khách có điểm thì hỏi có dùng để giảm giá không
+                GiaoDien.hoaDon(hd, duLieu);
                 if (!xacNhan()) return false;
                 // Kiểm tra toàn bộ trước khi giảm bất kỳ sản phẩm nào.
                 for (ChiTietHoaDon ct : hd.getDsChiTiet()) {
                     SanPham sp = duLieu.sanPham.searchSanPham(ct.getMaSP());
                     if (sp == null || sp.getSoLuong() < ct.getSoLuong()) throw new IllegalStateException("Không đủ hàng.");
+                    // [SERI] từng máy đã chọn phải vẫn còn trong kho
+                    for (String seri : seriBan.get(sp.getMaSP())) {
+                        if (!duLieu.seri.tim(seri).conTrongKho()) throw new IllegalStateException("Máy " + seri + " không còn trong kho.");
+                    }
                 }
                 for (ChiTietHoaDon ct : hd.getDsChiTiet()) {
                     SanPham sp = duLieu.sanPham.searchSanPham(ct.getMaSP());
                     sp.setSoLuong(sp.getSoLuong()-ct.getSoLuong());
+                    // [SERI] đánh dấu từng máy đã bán ở hóa đơn này (lưu vào file seri riêng)
+                    for (String seri : seriBan.get(sp.getMaSP())) duLieu.seri.tim(seri).ban(hd.getMaHD());
                 }
-                if (!duLieu.hoaDon.themHoaDon(hd)) throw new IllegalStateException("Không thêm được hóa đơn.");
+                // [UX] themHoaDon của lớp gốc tự in "Them hoa don ... thanh cong!" nên chạy im lặng, rồi tự in thông báo có dấu
+                if (!imLang(() -> duLieu.hoaDon.themHoaDon(hd))) throw new IllegalStateException("Không thêm được hóa đơn.");
+                System.out.println("Đã thanh toán hóa đơn " + hd.getMaHD() + ": " + Bang.tien(hd.getTongTien()) + " đ.");
+                // [UX] Tích điểm: báo điểm vừa được cộng và tổng điểm hiện có (đã tính cả hóa đơn này)
+                int diemCong = DiemTichLuy.diemKiemDuoc(hd);
+                if (diemCong > 0) {
+                    System.out.println("Khách " + kh.getHoTen() + " được cộng " + diemCong + " điểm, hiện có "
+                            + DiemTichLuy.diemHienCo(kh.getMa(), duLieu.hoaDon) + " điểm.");
+                }
                 return true;
             }
         }
+    }
+
+    // ===================== [UX] CHỌN KHÁCH VÀ LOẠI HÓA ĐƠN LÚC BÁN =====================
+
+    /**
+     * [UX] Chọn khách khi bán hàng: hỏi thẳng SỐ ĐIỆN THOẠI khách (gõ mã khách như KH001 cũng được).
+     *   - Khách đã có hồ sơ        -> chọn luôn, sang bước tiếp theo.
+     *   - Số điện thoại chưa có    -> nhập thêm khách mới (họ tên, địa chỉ), lưu ngay rồi sang bước tiếp theo.
+     *   - Enter (bỏ trống)         -> khách lẻ, không cần hồ sơ.
+     *   - 0                        -> hủy hóa đơn (trả về null).
+     * Gõ sai thì hỏi lại chứ không hủy cả hóa đơn.
+     */
+    private KhachHang chonKhachHang() throws Exception {
+        while (true) {
+            String tu = docDong("Số điện thoại khách (Enter = khách lẻ, 0 = hủy hóa đơn): ");
+            if (tu.equals("0")) return null;
+            if (tu.isEmpty()) return khachLe();
+            // Tìm khách đã có hồ sơ theo số điện thoại (hoặc theo mã khách)
+            KhachHang kh = duLieu.khachHang.timTheoSoDienThoai(tu);
+            if (kh == null) kh = duLieu.khachHang.timTheoMa(tu);
+            if (kh != null) {
+                String diem = DiemTichLuy.coTichDiem(kh.getMa())
+                        ? ", điểm tích lũy: " + DiemTichLuy.diemHienCo(kh.getMa(), duLieu.hoaDon) : "";
+                System.out.println("Khách hàng: " + kh.getMa() + " - " + kh.getHoTen() + " (" + kh.getSoDienThoai() + ")" + diem);
+                return kh;
+            }
+            // Chưa có hồ sơ: số điện thoại đúng định dạng thì thêm khách mới ngay
+            if (tu.matches("0[0-9]{9}")) {
+                KhachHang moi = themKhachMoi(tu);
+                if (moi != null) return moi;
+                continue;   // người dùng chọn gõ lại số điện thoại
+            }
+            System.out.println("Không tìm thấy khách \"" + tu + "\". Số điện thoại gồm 10 chữ số, bắt đầu bằng 0.");
+            goiYKhach(tu);   // có khách nào tên gần giống thì gợi ý
+        }
+    }
+
+    /**
+     * [UX] Tích điểm: hóa đơn BÁN LẺ của khách có hồ sơ mà khách đang có điểm thì hỏi dùng bao nhiêu điểm để giảm giá.
+     * Gọi lúc xác nhận thanh toán (khi đã biết tổng tiền). Enter hoặc 0 = không dùng.
+     * Bán sỉ và khách lẻ chung không dùng điểm nên hàm này không làm gì.
+     */
+    private void hoiDungDiem(HoaDon hd, KhachHang kh) {
+        if (!(hd instanceof HoaDonBanLe) || !DiemTichLuy.coTichDiem(kh.getMa())) return;
+        int coSan = DiemTichLuy.diemHienCo(kh.getMa(), duLieu.hoaDon);
+        int toiDa = DiemTichLuy.diemToiDaDung(hd, coSan);
+        if (toiDa <= 0) return;   // khách chưa có điểm (hoặc hóa đơn quá nhỏ) thì khỏi hỏi
+        System.out.println("Khách " + kh.getHoTen() + " đang có " + coSan + " điểm (1 điểm = "
+                + Bang.tien(DiemTichLuy.TIEN_MOI_DIEM_DUNG) + " đ, dùng tối đa 20% hóa đơn nên được dùng tối đa " + toiDa + " điểm).");
+        int dung;
+        while (true) {
+            String s = docDong("Dùng bao nhiêu điểm? (Enter hoặc 0 = không dùng): ");
+            if (s.isEmpty()) { dung = 0; break; }
+            try {
+                dung = Integer.parseInt(s);
+                if (dung >= 0 && dung <= toiDa) break;
+            } catch (NumberFormatException e) { /* nhập lại */ }
+            System.out.println("Vui lòng nhập số nguyên từ 0 đến " + toiDa + ".");
+        }
+        ((HoaDonBanLe) hd).setDiemTichLuySuDung(dung);
+    }
+
+    /** Khách lẻ chung (mã KHLE): chưa có thì tạo (code gốc, chỉ tách thành hàm riêng). */
+    private KhachHang khachLe() {
+        KhachHang kh = duLieu.khachHang.timTheoMa("KHLE");
+        if (kh == null) {
+            kh = new KhachHang("KHLE","Khách lẻ","0000000000","Tại quầy");
+            duLieu.khachHang.themKhachHang(kh);
+        }
+        return kh;
+    }
+
+    /** [UX] Gợi ý: in các khách có mã / tên / số điện thoại CHỨA chữ vừa gõ (nếu có) để người bán nhìn mà chọn. */
+    private void goiYKhach(String tu) {
+        if (tu.length() < 2) return;   // gõ có 1 ký tự thì khớp với gần như mọi khách, gợi ý vô ích
+        String tuThuong = tu.toLowerCase(java.util.Locale.ROOT);
+        ArrayList<KhachHang> goiY = new ArrayList<>();
+        for (KhachHang k : duLieu.khachHang.layDanhSach()) {
+            String chu = (k.getMa() + " " + k.getHoTen() + " " + k.getSoDienThoai()).toLowerCase(java.util.Locale.ROOT);
+            if (chu.contains(tuThuong)) goiY.add(k);
+        }
+        if (!goiY.isEmpty()) GiaoDien.khachHang("CÓ PHẢI KHÁCH NÀY?", goiY.toArray(new KhachHang[0]), duLieu);
+    }
+
+    /**
+     * [UX] Thêm khách mới ngay lúc bán, với số điện thoại vừa gõ (đã biết là chưa có hồ sơ).
+     * Khách được LƯU NGAY, nên dù sau đó hủy hóa đơn (thayDoi nạp lại dữ liệu từ file) khách mới vẫn còn.
+     * Gõ 0 ở ô họ tên để quay lại gõ lại số điện thoại (trả về null).
+     */
+    private KhachHang themKhachMoi(String sdt) throws Exception {
+        System.out.println("Số " + sdt + " chưa có hồ sơ, nhập thêm khách mới.");
+        String ten = chuoi("Họ tên khách (0 = gõ lại số điện thoại): ");
+        if (ten.equals("0")) return null;
+        KhachHang kh = new KhachHang(maMoi("KH"), ten, sdt, chuoi("Địa chỉ: "));
+        duLieu.khachHang.themKhachHang(kh);
+        System.out.println("Mã khách: " + kh.getMa());
+        duLieu.luu();   // lưu ngay, không chờ thanh toán xong
+        System.out.println("Đã lưu khách mới " + kh.getMa() + " (vẫn được giữ lại nếu hủy hóa đơn).");
+        return kh;
+    }
+
+    /**
+     * [UX] Hỏi loại hóa đơn rồi tạo hóa đơn. ĐA HÌNH: kiểu trả về là HoaDon chung, bên trong là
+     * HoaDonBanLe hoặc HoaDonBanSi; từ đây trở đi code bán hàng không cần biết là loại nào,
+     * mỗi loại tự tính giảm giá của mình qua tinhGiamGia().
+     * Trả về null nếu người dùng chọn hủy.
+     */
+    private HoaDon taoHoaDon(KhachHang kh, NhanVien nv) {
+        int loai = soNguyen("Loại hóa đơn: 1 Bán lẻ, 2 Bán sỉ (đại lý, có chiết khấu), 0 Hủy: ", 0, 2);
+        if (loai == 0) return null;
+        String maHD = maMoi("HD");
+        if (loai == 1) {
+            // Chưa có cơ chế tích điểm đồng bộ: bán lẻ dùng 0 điểm để tránh giảm giá tùy ý.
+            return new HoaDonBanLe(maHD, ngayHomNay(), kh.getMa(), nv.getMa(), 0);
+        }
+        String tenCongTy = chuoi("Tên công ty / đại lý: ");
+        double chietKhau = soThuc("Chiết khấu (%) từ 0 đến 100: ", 0, 100);
+        return new HoaDonBanSi(maHD, ngayHomNay(), kh.getMa(), nv.getMa(), chietKhau, tenCongTy);
     }
 
     private ChiTietHoaDon chiTiet(HoaDon hd, String ma) {
@@ -551,44 +820,76 @@ public class QuanLyCuaHang {
             int chon = chonMenu("NHẬP HÀNG", "Quay lại", "Lập phiếu nhập và tăng tồn", "Xem phiếu đã nhập", "Tìm phiếu theo mã");
             if (chon == 0) return;
             if (chon == 1) nhapHang();
-            else if (chon == 2) duLieu.phieuNhap.hienThi();
+            else if (chon == 2) GiaoDien.danhSachPhieuNhap(duLieu.phieuNhap.layDanhSach(), duLieu);
             else {
                 PhieuNhap ph = duLieu.phieuNhap.timTheoMa(chuoi("Mã phiếu: "));
-                if (ph == null) System.out.println("Không tìm thấy phiếu."); else ph.hienThi();
+                if (ph == null) System.out.println("Không tìm thấy phiếu."); else GiaoDien.phieuNhap(ph, duLieu);
             }
         }
     }
 
     public void nhapHang() { thayDoi(this::lapPhieuNhap); }
 
-    private boolean lapPhieuNhap() {
+    private boolean lapPhieuNhap() throws Exception {
         if (!duocPhep(ChucNang.NHAP_HANG, QuyenHan.GHI)) return false;   // Nhân viên / Quản lý / Admin đều được lập phiếu
-        if (duLieu.nhaCungCap.laRong() || duLieu.sanPham.getDsSanPham().isEmpty() || duLieu.nhanVien.layDanhSach().length == 0) {
-            System.out.println("Cần có nhà cung cấp, sản phẩm và nhân viên trước khi nhập."); return false;
+        // [NHẬP] Không bắt buộc phải có sản phẩm trước: có thể khai báo sản phẩm mới ngay trong phiếu nhập.
+        if (duLieu.nhaCungCap.laRong() || duLieu.nhanVien.layDanhSach().length == 0) {
+            System.out.println("Cần có nhà cung cấp và nhân viên trước khi nhập."); return false;
         }
-        duLieu.nhaCungCap.hienThi();
-        NhaCungCap ncc = duLieu.nhaCungCap.timTheoMa(chuoi("Mã nhà cung cấp: "));
-        if (ncc == null) { System.out.println("Không tìm thấy nhà cung cấp."); return false; }
+        // [UX] Gõ sai mã nhà cung cấp thì hỏi lại chứ không hủy cả phiếu (xem chonNhaCungCap)
+        NhaCungCap ncc = chonNhaCungCap();
+        if (ncc == null) { System.out.println("Đã hủy phiếu, tồn kho không thay đổi."); return false; }
         // Nhân viên lập phiếu chính là người đang đăng nhập (quyền nhập hàng đã kiểm tra ngay đầu hàm).
         NhanVien nv = nguoiDung();
         PhieuNhap ph = new PhieuNhap(duLieu.phieuNhap.sinhMaPN(), ngayHomNay(), ncc.getMaNCC(),nv.getMa());
+        // [SERI] Seri các máy sẽ nhập, theo từng mã sản phẩm. Chỉ đưa vào kho khi xác nhận phiếu.
+        HashMap<String, ArrayList<String>> seriNhap = new HashMap<>();
         while (true) {
             int chon = chonMenu("PHIẾU NHẬP TẠM " + ph.getMaPN(), "Hủy phiếu", "Thêm sản phẩm", "Xem phiếu", "Xác nhận nhập kho");
             if (chon == 0) { System.out.println("Đã hủy phiếu, tồn kho không thay đổi."); return false; }
             if (chon == 1) {
-                SanPham sp = timSanPham(); if (sp == null) continue;
+                // [NHẬP] Nhập thêm cho sản phẩm đã có, hoặc khai báo sản phẩm mới ngay trong phiếu.
+                // [UX] Chỉ người có quyền GHI trên Sản phẩm (Quản lý, Admin) mới được khai báo sản phẩm mới.
+                //      Nhân viên (chỉ XEM sản phẩm) chỉ được nhập thêm cho sản phẩm đã có.
+                int kieu = 1;
+                if (muc(ChucNang.SAN_PHAM) >= QuyenHan.GHI) kieu = soNguyen("Sản phẩm: 1 Đã có (nhập thêm), 2 Sản phẩm mới: ", 1, 2);
+                else System.out.println("Bạn chỉ được nhập thêm cho sản phẩm đã có (muốn thêm sản phẩm mới, nhờ Quản lý hoặc Admin).");
+                SanPham sp;
+                if (kieu == 1) {
+                    GiaoDien.tonKho(duLieu.sanPham.getDsSanPham());
+                    sp = timSanPham(); if (sp == null) continue;
+                } else {
+                    // Sản phẩm mới chỉ được lưu khi xác nhận phiếu; hủy phiếu thì sản phẩm cũng bị bỏ.
+                    SanPham moi = taoSanPhamMoi();
+                    sp = moi;
+                    imLang(() -> { duLieu.sanPham.themSanPham(moi); return true; });   // [UX] không in "✔ Thêm sản phẩm thành công" (chưa xác nhận phiếu)
+                    System.out.println("Mã sản phẩm mới: " + sp.getMaSP());
+                }
                 boolean trung = false;
                 for (ChiTietPhieuNhap ct : ph.getDsChiTiet()) if (ct.getNhapLieu().getMaSP().equalsIgnoreCase(sp.getMaSP())) trung = true;
                 if (trung) { System.out.println("Sản phẩm đã có trong phiếu. Hủy và lập lại nếu cần đổi số lượng."); continue; }
                 if (sp.getSoLuong() == Integer.MAX_VALUE) { System.out.println("Tồn kho đã đạt giới hạn."); continue; }
                 int sl = soNguyen("Số lượng nhập: ",1,Integer.MAX_VALUE-sp.getSoLuong());
                 double gia = soThuc("Giá nhập: ",0,1e15);
+                // [UX] Giá nhập không thấp hơn giá bán thì cảnh báo và hỏi có cập nhật giá bán không.
+                double giaBanCu = sp.getDonGia();   // nhớ giá bán cũ để trả lại nếu người dùng hủy dòng này ở bước seri
+                hoiCapNhatGiaBan(sp, gia);
+                // [SERI] Nhập bao nhiêu máy thì người dùng gõ bấy nhiêu seri
+                ArrayList<String> daCoTrongPhieu = new ArrayList<>();
+                for (ArrayList<String> ds : seriNhap.values()) daCoTrongPhieu.addAll(ds);
+                ArrayList<String> seriMoi = nhapSeriNhapHang(sp, sl, daCoTrongPhieu);
+                if (seriMoi == null) {   // người dùng gõ 0 để hủy
+                    sp.setDonGia(giaBanCu);   // [UX] hủy dòng này thì giá bán cũng trở về như cũ
+                    if (kieu == 2) duLieu.sanPham.xoaSanPham(sp.getMaSP());   // bỏ luôn sản phẩm mới vừa khai báo
+                    continue;
+                }
+                seriNhap.put(sp.getMaSP(), seriMoi);
                 String maCT = ph.getMaPN()+"-CT"+(ph.getDsChiTiet().size()+1);
                 ph.themChiTiet(new ChiTietPhieuNhap(maCT,ph.getMaPN(),new NhapLieu(maCT+"-NL",sp.getMaSP(),sl,gia)));
-            } else if (chon == 2) ph.hienThi();
+            } else if (chon == 2) GiaoDien.phieuNhap(ph, duLieu);
             else {
                 if (ph.getDsChiTiet().isEmpty()) { System.out.println("Phiếu cần ít nhất một sản phẩm."); continue; }
-                ph.hienThi(); if (!xacNhan()) return false;
+                GiaoDien.phieuNhap(ph, duLieu); if (!xacNhan()) return false;
                 for (ChiTietPhieuNhap ct : ph.getDsChiTiet()) {
                     SanPham sp = duLieu.sanPham.searchSanPham(ct.getNhapLieu().getMaSP());
                     Math.addExact(sp.getSoLuong(),ct.getNhapLieu().getSoLuongNhap());
@@ -596,11 +897,45 @@ public class QuanLyCuaHang {
                 for (ChiTietPhieuNhap ct : ph.getDsChiTiet()) {
                     SanPham sp = duLieu.sanPham.searchSanPham(ct.getNhapLieu().getMaSP());
                     sp.setSoLuong(sp.getSoLuong()+ct.getNhapLieu().getSoLuongNhap());
+                    // [SERI] ghi từng máy vào file seri riêng: còn trong kho, nhập từ phiếu này
+                    for (String seri : seriNhap.get(sp.getMaSP())) duLieu.seri.them(new SeriSanPham(seri, sp.getMaSP(), ph.getMaPN()));
                 }
                 if (!duLieu.phieuNhap.them(ph)) throw new IllegalStateException("Không thêm được phiếu nhập.");
                 return true;
             }
         }
+    }
+
+    /**
+     * [UX] Chọn nhà cung cấp khi nhập hàng. In danh sách, gõ sai mã thì hỏi lại (1 Gõ lại, 0 Hủy phiếu)
+     * chứ không hủy cả phiếu như trước. Trả về null nếu người dùng chọn hủy.
+     */
+    private NhaCungCap chonNhaCungCap() {
+        GiaoDien.nhaCungCap("NHÀ CUNG CẤP", duLieu.nhaCungCap.layDanhSach());
+        while (true) {
+            NhaCungCap ncc = duLieu.nhaCungCap.timTheoMa(chuoi("Mã nhà cung cấp: "));
+            if (ncc != null) return ncc;
+            System.out.println("Không tìm thấy nhà cung cấp.");
+            if (soNguyen("1 Gõ lại, 0 Hủy phiếu: ", 0, 1) == 0) return null;
+        }
+    }
+
+    /**
+     * [UX] Giá nhập từ mức giá bán trở lên nghĩa là bán ra không có lãi: cảnh báo và hỏi có cập nhật giá bán không.
+     * Giá bán mới chỉ có hiệu lực khi xác nhận phiếu nhập (hủy phiếu thì giá bán giữ như cũ).
+     */
+    private void hoiCapNhatGiaBan(SanPham sp, double giaNhap) {
+        if (giaNhap < sp.tinhGiaBan()) return;   // bình thường: giá nhập thấp hơn giá bán
+        System.out.println("CẢNH BÁO: giá nhập " + Bang.tien(giaNhap) + " đ không thấp hơn giá bán hiện tại "
+                + Bang.tien(sp.tinhGiaBan()) + " đ, bán ra sẽ không có lãi.");
+        if (soNguyen("Cập nhật giá bán? 1 Có, 0 Giữ nguyên: ", 0, 1) == 0) return;
+        double giaMoi = soThuc("Giá bán mới (phải lớn hơn giá nhập): ", 0, 1e15);
+        while (giaMoi <= giaNhap) {
+            System.out.println("Giá bán mới phải lớn hơn giá nhập " + Bang.tien(giaNhap) + " đ.");
+            giaMoi = soThuc("Giá bán mới (phải lớn hơn giá nhập): ", 0, 1e15);
+        }
+        sp.setDonGia(giaMoi);
+        System.out.println("Đã đổi giá bán " + sp.getMaSP() + " thành " + Bang.tien(giaMoi) + " đ (có hiệu lực khi xác nhận phiếu).");
     }
 
     /** Không cho xóa danh mục mà hóa đơn/phiếu nhập đang tham chiếu. */
@@ -621,8 +956,124 @@ public class QuanLyCuaHang {
         SanPham sp = duLieu.sanPham.searchSanPham(chuoi("Mã sản phẩm: "));
         if (sp == null) System.out.println("Không tìm thấy sản phẩm."); return sp;
     }
+
+    // ===================== [SERI] SERI TỪNG MÁY =====================
+
+    /**
+     * [SERI] Khi BÁN: chọn seri cho từng máy. Seri phải là máy CÒN TRONG KHO của sản phẩm sp
+     * và chưa được chọn ở hóa đơn tạm này (seriBan). Gõ 0 để hủy (trả về null).
+     */
+    private ArrayList<String> chonSeriDeBan(SanPham sp, int soMay, HashMap<String, ArrayList<String>> seriBan) {
+        ArrayList<String> daChonTruoc = seriBan.get(sp.getMaSP());   // máy của SP này đã chọn ở lần thêm trước
+        if (daChonTruoc == null) daChonTruoc = new ArrayList<>();
+        // In bảng các máy còn trong kho mà chưa được chọn, để người bán nhìn seri mà gõ
+        ArrayList<SeriSanPham> conChon = new ArrayList<>();
+        for (SeriSanPham s : duLieu.seri.trongKho(sp.getMaSP())) {
+            if (!daChonTruoc.contains(s.getMaSeri())) conChon.add(s);
+        }
+        GiaoDien.seri("MÁY CÒN TRONG KHO CỦA " + sp.getMaSP(), conChon);
+
+        // [UX] Ba cách chọn máy: gõ STT trong bảng (vd "1" hoặc "1,2"), gõ seri đầy đủ, hoặc nhấn Enter để lấy máy nhập trước.
+        ArrayList<String> daChon = new ArrayList<>();
+        while (daChon.size() < soMay) {
+            int conThieu = soMay - daChon.size();
+            String nhap = docDong("Chọn " + conThieu + " máy - gõ STT (vd 1 hoặc 1,2) hoặc seri, Enter = lấy máy nhập trước, 0 = hủy: ");
+            if (nhap.equals("0")) return null;
+            if (nhap.isEmpty()) {
+                // Enter: tự lấy các máy đứng đầu bảng (nhập trước), bỏ qua máy đã chọn
+                for (SeriSanPham s : conChon) {
+                    if (daChon.size() >= soMay) break;
+                    if (!daChon.contains(s.getMaSeri())) daChon.add(s.getMaSeri());
+                }
+                continue;
+            }
+            // Gõ một hoặc nhiều mục cách nhau bằng dấu phẩy. Gom vào "dot", chỉ nhận cả đợt khi MỌI mục đều hợp lệ.
+            ArrayList<String> dot = new ArrayList<>(daChon);
+            boolean hopLe = true;
+            for (String muc : nhap.split(",")) {
+                String seri = doiSangSeri(muc.trim(), sp, conChon, dot, daChonTruoc);
+                if (seri == null) { hopLe = false; break; }   // doiSangSeri đã in lý do
+                dot.add(seri);
+            }
+            if (!hopLe) continue;
+            if (dot.size() > soMay) {
+                System.out.println("Chỉ cần chọn thêm " + conThieu + " máy, bạn gõ " + (dot.size() - daChon.size()) + " máy.");
+                continue;
+            }
+            daChon = dot;
+        }
+        System.out.println("Đã chọn " + soMay + " máy: " + String.join(", ", daChon));
+        return daChon;
+    }
+
+    /**
+     * [UX] Đổi một mục người dùng gõ (số seri đầy đủ HOẶC STT trong bảng) thành số seri thật.
+     * Mục không hợp lệ thì in lý do và trả về null.
+     * daChon = các máy đã chọn trong đợt này; daChonTruoc = các máy đã chọn ở lần thêm trước của cùng sản phẩm.
+     */
+    private String doiSangSeri(String muc, SanPham sp, ArrayList<SeriSanPham> conChon,
+                               ArrayList<String> daChon, ArrayList<String> daChonTruoc) {
+        String seri;
+        SeriSanPham s = duLieu.seri.tim(muc);
+        if (s != null && s.conTrongKho() && s.getMaSP().equalsIgnoreCase(sp.getMaSP())) {
+            seri = s.getMaSeri();   // gõ đúng seri: lấy đúng chữ như trong file (không phân biệt hoa thường khi gõ)
+        } else if (muc.matches("[1-9][0-9]{0,5}")) {
+            int stt = Integer.parseInt(muc);   // gõ số: hiểu là STT trong bảng "MÁY CÒN TRONG KHO"
+            if (stt > conChon.size()) {
+                System.out.println("Không có máy số " + stt + " trong bảng (chọn từ 1 đến " + conChon.size() + ").");
+                return null;
+            }
+            seri = conChon.get(stt - 1).getMaSeri();
+        } else {
+            System.out.println("Seri này không có trong kho của " + sp.getMaSP() + ".");
+            return null;
+        }
+        if (daChon.contains(seri) || daChonTruoc.contains(seri)) {
+            System.out.println("Máy này đã được chọn rồi.");
+            return null;
+        }
+        return seri;
+    }
+
+    /**
+     * [SERI] Khi NHẬP HÀNG: người dùng tự gõ seri cho từng máy (đọc trên hộp / tem máy).
+     * Seri không được trùng với máy đang trong kho, máy đã bán, hay máy khác trong cùng phiếu.
+     * Gõ 0 để hủy (trả về null).
+     */
+    private ArrayList<String> nhapSeriNhapHang(SanPham sp, int soMay, ArrayList<String> daCoTrongPhieu) {
+        System.out.println("Nhập seri cho " + soMay + " máy " + sp.getMaSP() + " - " + sp.getTenSP() + ":");
+        ArrayList<String> ds = new ArrayList<>();
+        while (ds.size() < soMay) {
+            String seri = chuoi("Seri máy thứ " + (ds.size() + 1) + "/" + soMay + " (0 để hủy): ");
+            if (seri.equals("0")) return null;
+            if (!SeriSanPham.hopLe(seri)) {
+                System.out.println("Seri gồm 3-30 ký tự: chữ không dấu, số, dấu - _ hoặc .");
+            } else if (seriDaDung(seri, ds) || seriDaDung(seri, daCoTrongPhieu)) {
+                System.out.println("Seri " + seri + " đã tồn tại, nhập seri khác.");
+            } else {
+                ds.add(seri);
+            }
+        }
+        return ds;
+    }
+
+    /** [SERI] Seri đã được dùng chưa: có trong danh sách "dangNhap", hoặc đã có trong file seri (còn trong kho hay đã bán). */
+    private boolean seriDaDung(String seri, ArrayList<String> dangNhap) {
+        for (String s : dangNhap) {
+            if (s.equalsIgnoreCase(seri)) return true;
+        }
+        return duLieu.seri.tim(seri) != null;
+    }
+
+    /** [SERI] Tra cứu bảo hành: máy có seri này thuộc sản phẩm nào, còn trong kho hay đã bán cho ai, ngày nào. */
+    private void traCuuSeri() {
+        SeriSanPham s = duLieu.seri.tim(chuoi("Seri máy cần tra: "));
+        if (s == null) System.out.println("Không tìm thấy máy có seri này.");
+        else GiaoDien.traCuuSeri(s, duLieu);
+    }
+
     private NhanVien timNhanVien() {
-        duLieu.nhanVien.hienThi();
+        GiaoDien.nhanVien("DANH SÁCH NHÂN VIÊN", duLieu.nhanVien.layDanhSach());
         String ma = chuoi("Mã nhân viên: ");
         for (NhanVien nv : duLieu.nhanVien.layDanhSach()) if (nv.getMa().equalsIgnoreCase(ma)) return nv;
         System.out.println("Không tìm thấy nhân viên."); return null;
@@ -707,6 +1158,92 @@ public class QuanLyCuaHang {
         }
     }
     private boolean xacNhan() { return soNguyen("Xác nhận: 1 Đồng ý, 0 Hủy: ",0,1)==1; }
+
+    // ===================== [UX] HÀM NHẬP / HỎI DÙNG CHUNG =====================
+
+    /** [UX] Đọc một dòng người dùng gõ, được phép để TRỐNG (chỉ nhấn Enter). Khác chuoi() là chuoi() không nhận chuỗi rỗng. */
+    private String docDong(String thongBao) {
+        System.out.print(thongBao);
+        if (!sc.hasNextLine()) throw new NoSuchElementException("Hết dữ liệu nhập.");
+        return sc.nextLine().trim();
+    }
+
+    /**
+     * [UX] Nhập mật khẩu có ẨN ký tự khi gõ (người đứng cạnh không nhìn thấy).
+     * Chạy trong cửa sổ dòng lệnh thật (cmd, PowerShell, terminal) thì dùng Console.readPassword: gõ không hiện gì.
+     * Không có cửa sổ thật (chạy trong IDE, hoặc test đọc input từ file) thì System.console() là null,
+     * lúc đó đọc như bình thường bằng chuoi() (mật khẩu sẽ hiện ra).
+     */
+    private String nhapMatKhau(String thongBao) {
+        java.io.Console console = System.console();
+        if (console == null) return chuoi(thongBao);
+        while (true) {
+            System.out.print(thongBao);
+            System.out.flush();
+            char[] mk = console.readPassword();          // gõ không hiện ký tự nào
+            if (mk == null) throw new NoSuchElementException("Hết dữ liệu nhập.");
+            String s = new String(mk).trim();
+            java.util.Arrays.fill(mk, ' ');              // xóa mật khẩu khỏi bộ nhớ tạm
+            if (!s.isEmpty() && !s.contains(";")) return s;
+            System.out.println("Không để trống hoặc chứa dấu chấm phẩy (;).");   // cùng luật với chuoi()
+        }
+    }
+
+    /** [UX] Sửa một chữ: gõ giá trị mới, hoặc nhấn Enter để GIỮ NGUYÊN giá trị cũ (cu). */
+    private String chuoiGiuNguyen(String tenTruong, String cu) {
+        while (true) {
+            String s = docDong(tenTruong + " mới (Enter = giữ \"" + cu + "\"): ");
+            if (s.isEmpty()) return cu;
+            if (!s.contains(";")) return s;
+            System.out.println("Không chứa dấu chấm phẩy (;).");
+        }
+    }
+
+    /** [UX] Sửa một số tiền: gõ số mới, hoặc nhấn Enter để giữ nguyên số cũ (cu). */
+    private double soThucGiuNguyen(String tenTruong, double cu, double min, double max) {
+        while (true) {
+            String s = docDong(tenTruong + " mới (Enter = giữ " + Bang.tien(cu) + "): ");
+            if (s.isEmpty()) return cu;
+            try { double n = Double.parseDouble(s); if (Double.isFinite(n) && n >= min && n <= max) return n; }
+            catch (NumberFormatException e) { /* nhập lại */ }
+            System.out.println("Nhập số hữu hạn từ " + min + " đến " + max + ".");
+        }
+    }
+
+    /** [UX] Sửa số điện thoại: gõ số mới (đúng định dạng) hoặc nhấn Enter để giữ nguyên. */
+    private String dienThoaiGiuNguyen(String cu) {
+        while (true) {
+            String s = docDong("Số điện thoại mới (Enter = giữ " + cu + "): ");
+            if (s.isEmpty()) return cu;
+            if (s.matches("0[0-9]{9}")) return s;
+            System.out.println("Số điện thoại không đúng định dạng.");
+        }
+    }
+
+    /**
+     * [UX] Hỏi trước khi XÓA: in rõ đối tượng sắp xóa (loại + mã + tên) rồi hỏi 1 Đồng ý / 0 Hủy.
+     * Trả về true nếu người dùng đồng ý xóa.
+     */
+    private boolean xacNhanXoa(String doiTuong) {
+        System.out.println("Sắp xóa " + doiTuong + ".");
+        if (xacNhan()) return true;
+        System.out.println("Đã hủy, không xóa gì.");
+        return false;
+    }
+
+    /**
+     * [UX] Chạy một việc nhưng KHÔNG cho các lớp gốc in thông báo kỹ thuật ra màn hình
+     * (ví dụ DanhSachHoaDon.themHoaDon tự in "Them hoa don HD007 thanh cong!").
+     * Thông báo cho người dùng do QuanLyCuaHang tự in lại bằng tiếng Việt có dấu.
+     */
+    private boolean imLang(ThaoTac viec) throws Exception {
+        java.io.PrintStream manHinhCu = DuLieuCuaHang.tatIn();
+        try {
+            return viec.thucHien();
+        } finally {
+            DuLieuCuaHang.batIn(manHinhCu);   // luôn trả lại màn hình, kể cả khi lỗi
+        }
+    }
     private String ngayHomNay() { return LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")); }
     private String lyDo(Throwable e) {
         while(e.getCause()!=null) e=e.getCause();

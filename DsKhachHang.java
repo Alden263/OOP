@@ -18,25 +18,7 @@ public class DsKhachHang{
             if (tuDongLuu) ghiFile();
         }
         else{
-            System.out.println("Danh sach da day, khong the them khach hang moi!");
-        }
-    }
-    public void xuatKhachHang(){
-        if (soLuong == 0){
-            System.out.println("Danh sach rong");
-            return;
-        }
-        System.out.println("Danh sach khach hang:");
-        for (int i = 0; i < soLuong; i++){
-            System.out.println("Khach hang thu " + (i + 1));
-            danhSach[i].hienThi();
-            System.out.println();
-        }
-    }
-    public void hienThi(){
-        for (int i = 0; i < soLuong; i++) {
-            danhSach[i].hienThi();
-            System.out.println("--------------------");
+            System.out.println("Danh sách đã đầy, không thể thêm khách hàng mới!");
         }
     }
     public KhachHang timTheoMa(String ma){
@@ -46,19 +28,6 @@ public class DsKhachHang{
             }
         }
         return null;
-    }
-    public void timTheoTen(String ten){
-        boolean found = false;
-        for (int i = 0; i < soLuong; i++){
-            if (danhSach[i].getHoTen().equalsIgnoreCase(ten)){
-                danhSach[i].hienThi();
-                System.out.println("--------------------");
-                found = true;
-            }
-        }
-        if (!found){
-            System.out.println("Không tìm thấy khách hàng với tên: " + ten);
-        }
     }
     public KhachHang timTheoSoDienThoai(String sdt){
         for (int i = 0; i < soLuong; i++){
@@ -119,7 +88,7 @@ public class DsKhachHang{
                         danhSach[soLuong] = kh;
                         soLuong++;
                     } else {
-                        System.out.println("Mang khach hang da day!");
+                        System.out.println("Mảng khách hàng đã đầy!");
                         break;
                     }
                 }

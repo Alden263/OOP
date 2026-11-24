@@ -1,5 +1,3 @@
-import java.util.Scanner;
-
 public abstract class SanPham {
     protected String maSP;
     protected String tenSP;
@@ -62,20 +60,6 @@ public abstract class SanPham {
         this.tenSP=tenSP;
         this.donGia=donGia;
         this.soLuong=soLuong;
-    }
-    public void nhap(Scanner sc){
-        System.out.println("Nhập mã sản phẩm ");
-        maSP=sc.nextLine();
-        System.out.println("Nhập tên sản phẩm ");
-        tenSP=sc.nextLine();
-        System.out.println("Nhập giá bán ");
-        donGia=Double.parseDouble(sc.nextLine());
-        System.out.println("Nhập số lượng tồn kho ");
-        soLuong=Integer.parseInt(sc.nextLine());
-    }
-    public void hienthi(){
-        System.out.println("Mã SP: " + maSP + " | Tên SP: " + tenSP +
-                " | Đơn giá: " + donGia + " | Số lượng: " + soLuong);
     }
     public abstract double tinhGiaBan();
 

@@ -15,12 +15,5 @@ public class KhachHang extends Nguoi{
     public void setDiaChi(String diaChi) {
         this.diaChi = diaChi;
     }
-    @Override
-    public void hienThi() {
-        System.out.println("Ma khach hang: " + ma);
-        System.out.println("Ho ten: " + hoTen);
-        System.out.println("So dien thoai: " + soDienThoai);
-        System.out.println("Dia chi: " + diaChi);
-    }
 }
 

@@ -1,4 +1,3 @@
-import java.util.Scanner;
 
 public class LinhKien extends SanPham {
     protected String loaiLinhKien;
@@ -36,18 +35,5 @@ public class LinhKien extends SanPham {
     @Override
     public  double tinhGiaBan(){
         return getDonGia();
-    }
-    public void nhap(Scanner sc){
-        this.maSP = SanPham.sinhMa("LK");
-        super.nhap(sc);
-        System.out.println("Nhập loại linh kiện");
-        loaiLinhKien=sc.nextLine();
-        System.out.println("Nhập hãng sản xuất");
-        hangSanXuat=sc.nextLine();
-
-    }
-    public void hienthi(){
-        super.hienthi();
-        System.out.println("  [Linh Kiện] Loại linh kiện: " + loaiLinhKien + " | Hãng sản xuất: " + hangSanXuat + "GB |") ;
     }
 }

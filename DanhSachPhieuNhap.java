@@ -1,8 +1,7 @@
 import java.io.*;
 import java.util.Arrays;
-import java.util.Scanner;
 
-public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
+public class DanhSachPhieuNhap implements ghiDocFile {
     private static final String FILE_PHIEU_NHAP = "PhieuNhap.txt";
 
     private static final int SUC_CHUA_BAN_DAU = 10;
@@ -10,10 +9,8 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
     private PhieuNhap[] ds = new PhieuNhap[SUC_CHUA_BAN_DAU]; // mang theo so do lop
     private int soLuong = 0;                                  // so phieu dang co trong mang
     private DanhSachNhaCungCap dsNCC; // de kiem tra ma NCC co ton tai khi lap phieu
-    private Scanner sc;               // dung chung Scanner voi Main, khong tao Scanner moi
 
-    public DanhSachPhieuNhap(Scanner sc, DanhSachNhaCungCap dsNCC) {
-        this.sc = sc;
+    public DanhSachPhieuNhap(DanhSachNhaCungCap dsNCC) {
         this.dsNCC = dsNCC;
         dsNCC.setDsPhieuNhap(this); // de dsNCC biet NCC nao dang co phieu khi xoa
     }
@@ -42,149 +39,27 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
         return null;
     }
 
-    // tim 1 dong chi tiet trong phieu, khong thay thi tra ve null
-    private ChiTietPhieuNhap timChiTiet(PhieuNhap ph, String maCT) {
-        for (ChiTietPhieuNhap ct : ph.getDsChiTiet()) {
-            if (ct.getMaCTPN().equalsIgnoreCase(maCT)) {
-                return ct;
-            }
-        }
-        return null;
-    }
-
     // ===== sinh ma tu dong: lay so lon nhat dang co + 1 =====
 
     public String sinhMaPN() {
         int max = 0;
         for (int i = 0; i < soLuong; i++) {
             PhieuNhap ph = ds[i];
-            max = Math.max(max, NhapTuBanPhim.soCuoi(ph.getMaPN(), "PN"));
+            max = Math.max(max, TienIchMa.soCuoi(ph.getMaPN(), "PN"));
         }
         return String.format("PN%03d", max + 1);
     }
 
-    // ma chi tiet danh so chung cho tat ca phieu
-    private String sinhMaCT() {
-        int max = 0;
-        for (int i = 0; i < soLuong; i++) {
-            PhieuNhap ph = ds[i];
-            for (ChiTietPhieuNhap ct : ph.getDsChiTiet()) {
-                max = Math.max(max, NhapTuBanPhim.soCuoi(ct.getMaCTPN(), "CT"));
-            }
-        }
-        return String.format("CT%03d", max + 1);
-    }
-
-    // ma nhap lieu cung danh so chung
-    private String sinhMaNL() {
-        int max = 0;
-        for (int i = 0; i < soLuong; i++) {
-            PhieuNhap ph = ds[i];
-            for (ChiTietPhieuNhap ct : ph.getDsChiTiet()) {
-                max = Math.max(max, NhapTuBanPhim.soCuoi(ct.getMaNhapLieu(), "NL"));
-            }
-        }
-        return String.format("NL%03d", max + 1);
-    }
-
-    // ===== 5 HÀM TUÂN THỦ GIAO TIẾP (INTERFACE) IQuanLy =====
-
-    @Override
-    public void them(Scanner sc) {
-        if (dsNCC.laRong()) {
-            System.out.println("Chua co nha cung cap nao, hay them nha cung cap truoc!");
-            return;
-        }
-        String ma = sinhMaPN();
-        System.out.println("Ma phieu nhap (tu sinh): " + ma);
-        String ngay = NhapTuBanPhim.docNgay(sc, "Ngay nhap (dd/MM/yyyy)", null);
-        dsNCC.hienThi();
-        String maNCC = docMaNCC(null);
-        String maNV = NhapTuBanPhim.docChuoi(sc, "Ma nhan vien lap phieu", null);
-
-        PhieuNhap ph = new PhieuNhap(ma, ngay, maNCC, maNV);
-        them(ph);
-        // nhap it nhat 1 dong chi tiet, sau do hoi co nhap them khong
-        do {
-            themChiTietTuBanPhim(ph);
-        } while (NhapTuBanPhim.hoiCoKhong(sc, "Them dong chi tiet nua?"));
-        System.out.println("Lap phieu nhap thanh cong! Tong tien: " + ph.tinhTongTien());
-    }
-
-    @Override
-    public void sua(String maPN, Scanner sc) {
-        PhieuNhap ph = timTheoMa(maPN);
-        if (ph == null) {
-            System.out.println("Khong tim thay phieu nhap co ma: " + maPN);
-            return;
-        }
-        System.out.println("--- SUA PHIEU NHAP " + ph.getMaPN() + " ---");
-        ph.setNgayNhap(NhapTuBanPhim.docNgay(sc, "Ngay nhap moi", ph.getNgayNhap()));
-        ph.setMaNCC(docMaNCC(ph.getMaNCC()));
-        ph.setMaNV(NhapTuBanPhim.docChuoi(sc, "Ma nhan vien moi", ph.getMaNV()));
-        System.out.println("Cap nhat thanh cong!");
-    }
-
-    @Override
-    public boolean xoa(String maPN) {
-        PhieuNhap ph = timTheoMa(maPN);
-        if (ph == null) {
-            System.out.println("Khong tim thay phieu nhap co ma: " + maPN);
-            return false;
-        }
-        // tim vi tri cua phieu roi don cac phan tu phia sau len 1 o
-        int viTri = 0;
-        while (viTri < soLuong && ds[viTri] != ph) {
-            viTri++;
-        }
-        for (int i = viTri; i < soLuong - 1; i++) {
-            ds[i] = ds[i + 1];
-        }
-        soLuong--;
-        ds[soLuong] = null;
-        System.out.println("Xoa thanh cong!");
-        return true; // Đã bổ sung trả về true khi xóa thành công
-    }
-
-    @Override
-    public void timKiem(Scanner sc) {
-        System.out.print("Nhap ma phieu nhap can tim: ");
-        String maPN = sc.nextLine().trim();
-        PhieuNhap ph = timTheoMa(maPN);
-        if (ph == null) {
-            System.out.println("Khong tim thay phieu nhap co ma: " + maPN);
-        } else {
-            ph.hienThi();
-        }
-    }
-
-    @Override
-    public void hienThi() {
-        if (soLuong == 0) {
-            System.out.println("Danh sach phieu nhap dang trong.");
-            return;
-        }
-        for (int i = 0; i < soLuong; i++) {
-            PhieuNhap ph = ds[i];
-            ph.hienThi();
-            System.out.println("--------------------");
-        }
-    }
-
-    // ===== các hàm thêm ngoài interface =====
-
-    // nap chong (overload) voi them(): them 1 phieu co san,
+    // them 1 phieu co san,
     // tra ve false neu null, trung ma hoac NCC khong ton tai
     public boolean them(PhieuNhap ph) {
         if (ph == null) {
             return false;
         }
         if (timTheoMa(ph.getMaPN()) != null) {
-            System.out.println("Ma phieu " + ph.getMaPN() + " da ton tai!");
             return false;
         }
         if (dsNCC.timTheoMa(ph.getMaNCC()) == null) {
-            System.out.println("Nha cung cap " + ph.getMaNCC() + " khong ton tai!");
             return false;
         }
         // mang day thi noi rong gap doi
@@ -194,95 +69,6 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
         ds[soLuong] = ph;
         soLuong++;
         return true;
-    }
-
-    // hoi ma NCC den khi nhap ma co that
-    private String docMaNCC(String cu) {
-        while (true) {
-            String ma = NhapTuBanPhim.docChuoi(sc, "Ma nha cung cap", cu);
-            NhaCungCap ncc = dsNCC.timTheoMa(ma);
-            if (ncc != null) {
-                return ncc.getMaNCC();
-            }
-            System.out.println("Khong co nha cung cap nay!");
-        }
-    }
-
-    public void timTheoNCC(String maNCC) {
-        boolean timThay = false;
-        for (int i = 0; i < soLuong; i++) {
-            PhieuNhap ph = ds[i];
-            if (ph.getMaNCC().equalsIgnoreCase(maNCC)) {
-                ph.hienThi();
-                System.out.println("--------------------");
-                timThay = true;
-            }
-        }
-        if (!timThay) {
-            System.out.println("Khong co phieu nhap nao cua NCC " + maNCC);
-        }
-    }
-
-    // ===== chi tiet phieu =====
-
-    // nhap 1 dong chi tiet (ma SP, so luong, gia) roi them vao phieu
-    private void themChiTietTuBanPhim(PhieuNhap ph) {
-        String maSP = NhapTuBanPhim.docChuoi(sc, "Ma san pham nhap", null);
-        int soLuong = NhapTuBanPhim.docSoNguyenDuong(sc, "So luong nhap", null);
-        double giaNhap = NhapTuBanPhim.docSoThucDuong(sc, "Gia nhap", null);
-
-        NhapLieu nl = new NhapLieu(sinhMaNL(), maSP, soLuong, giaNhap);
-        ph.themChiTiet(new ChiTietPhieuNhap(sinhMaCT(), ph.getMaPN(), nl));
-    }
-
-    public void themChiTiet(String maPN) {
-        PhieuNhap ph = timTheoMa(maPN);
-        if (ph == null) {
-            System.out.println("Khong tim thay phieu nhap co ma: " + maPN);
-            return;
-        }
-        themChiTietTuBanPhim(ph);
-        System.out.println("Them chi tiet thanh cong!");
-    }
-
-    public void suaChiTiet(String maPN, String maCT) {
-        PhieuNhap ph = timTheoMa(maPN);
-        if (ph == null) {
-            System.out.println("Khong tim thay phieu nhap co ma: " + maPN);
-            return;
-        }
-        ChiTietPhieuNhap ct = timChiTiet(ph, maCT);
-        if (ct == null) {
-            System.out.println("Phieu " + ph.getMaPN() + " khong co chi tiet " + maCT);
-            return;
-        }
-        NhapLieu nl = ct.getNhapLieu();
-        System.out.println("--- SUA CHI TIET " + ct.getMaCTPN() + " ---");
-        nl.setMaSP(NhapTuBanPhim.docChuoi(sc, "Ma san pham moi", nl.getMaSP()));
-        nl.setSoLuongNhap(NhapTuBanPhim.docSoNguyenDuong(sc, "So luong moi", nl.getSoLuongNhap()));
-        nl.setGiaNhap(NhapTuBanPhim.docSoThucDuong(sc, "Gia nhap moi", nl.getGiaNhap()));
-        System.out.println("Cap nhat thanh cong!");
-    }
-
-    public void xoaChiTiet(String maPN, String maCT) {
-        PhieuNhap ph = timTheoMa(maPN);
-        if (ph == null) {
-            System.out.println("Khong tim thay phieu nhap co ma: " + maPN);
-            return;
-        }
-        ChiTietPhieuNhap ct = timChiTiet(ph, maCT);
-        if (ct == null) {
-            System.out.println("Phieu " + ph.getMaPN() + " khong co chi tiet " + maCT);
-            return;
-        }
-        // phieu phai con it nhat 1 dong chi tiet (giong luc lap phieu)
-        if (ph.getDsChiTiet().size() <= 1) {
-            System.out.println("Khong the xoa: phieu phai co it nhat 1 chi tiet. "
-                    + "Muon bo thi hay xoa ca phieu " + ph.getMaPN() + "!");
-            return;
-        }
-        ph.getDsChiTiet().remove(ct);
-        System.out.println("Xoa thanh cong!");
     }
 
     // ===== doc / ghi file (interface ghiDocFile) =====
@@ -302,7 +88,6 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
                 }
             }
             if (pw.checkError()) throw new IOException("Không thể ghi đầy đủ dữ liệu");
-            System.out.println("Ghi " + soLuong + " phieu nhap vao file " + path + " thanh cong!");
         } catch (Exception e) {
             throw new IllegalStateException("Không thể đọc/ghi dữ liệu", e);
         }
@@ -313,7 +98,6 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
         String path = (duongDan != null && !duongDan.isEmpty()) ? duongDan : FILE_PHIEU_NHAP;
         File f = new File(path);
         if (!f.exists()) {
-            System.out.println("File " + path + " khong ton tai!");
             return;
         }
         // xoa danh sach cu truoc khi nap tu file
@@ -328,84 +112,24 @@ public class DanhSachPhieuNhap implements IQuanLy, ghiDocFile {
                 String[] p = line.split(";");
                 try {
                     if (p[0].equals("PN") && p.length >= 5) {
-                        if (!them(new PhieuNhap(p[1], p[2], p[3], p[4]))) {
-                            System.out.println("Bo qua phieu " + p[1]
-                                    + " (neu chua doc file nha cung cap thi hay doc truoc).");
-                        }
+                        // phieu loi (vd NCC khong ton tai) thi bo qua; DuLieuCuaHang se bao loi vi so dong khong khop
+                        them(new PhieuNhap(p[1], p[2], p[3], p[4]));
                     } else if (p[0].equals("CT") && p.length >= 7) {
                         PhieuNhap ph = timTheoMa(p[2]);
                         if (ph == null) {
-                            System.out.println("Bo qua chi tiet " + p[1] + " vi khong co phieu " + p[2]);
-                            continue;
+                            continue; // chi tiet khong co phieu thi bo qua
                         }
                         NhapLieu nl = new NhapLieu(p[3], p[4], Integer.parseInt(p[5]), Double.parseDouble(p[6]));
                         ph.themChiTiet(new ChiTietPhieuNhap(p[1], p[2], nl));
                     }
                 } catch (Exception e) {
-                    System.out.println("Bo qua dong bi loi: " + line);
+                    // dong bi loi thi bo qua; DuLieuCuaHang se bao loi vi so dong khong khop
                 }
             }
-            System.out.println("Doc file " + path + " thanh cong! So phieu nap: " + soLuong);
         } catch (Exception e) {
             throw new IllegalStateException("Không thể đọc/ghi dữ liệu", e);
         }
     }
 
-    // ===== menu =====
-
-    private String hoiMa(String cauHoi) {
-        System.out.print(cauHoi + ": ");
-        return sc.nextLine().trim();
-    }
-
-    public void menu() {
-        int chon;
-        do {
-            System.out.println("\n===== QUAN LY PHIEU NHAP =====");
-            System.out.println("1. Xem tat ca phieu nhap");
-            System.out.println("2. Lap phieu nhap moi");
-            System.out.println("3. Tim phieu theo ma");
-            System.out.println("4. Tim phieu theo nha cung cap");
-            System.out.println("5. Sua phieu (ngay, NCC, nhan vien)");
-            System.out.println("6. Them chi tiet vao phieu");
-            System.out.println("7. Sua chi tiet");
-            System.out.println("8. Xoa chi tiet");
-            System.out.println("9. Xoa phieu");
-            System.out.println("10. Doc tu file");
-            System.out.println("11. Ghi ra file");
-            System.out.println("0. Quay lai");
-            chon = NhapTuBanPhim.docLuaChon(sc);
-
-            if (chon == 1) {
-                hienThi();
-            } else if (chon == 2) {
-                them(sc); // Truyền sc vào cho khớp interface
-            } else if (chon == 3) {
-                timKiem(sc); // Truyền sc vào cho khớp interface
-            } else if (chon == 4) {
-                timTheoNCC(hoiMa("Nhap ma NCC"));
-            } else if (chon == 5) {
-                sua(hoiMa("Nhap ma phieu can sua"), sc); // Truyền thêm sc vào cho khớp interface
-            } else if (chon == 6) {
-                themChiTiet(hoiMa("Nhap ma phieu"));
-            } else if (chon == 7) {
-                String maPN = hoiMa("Nhap ma phieu");
-                String maCT = hoiMa("Nhap ma chi tiet can sua");
-                suaChiTiet(maPN, maCT);
-            } else if (chon == 8) {
-                String maPN = hoiMa("Nhap ma phieu");
-                String maCT = hoiMa("Nhap ma chi tiet can xoa");
-                xoaChiTiet(maPN, maCT);
-            } else if (chon == 9) {
-                xoa(hoiMa("Nhap ma phieu can xoa"));
-            } else if (chon == 10) {
-                docFile(FILE_PHIEU_NHAP);
-            } else if (chon == 11) {
-                ghiFile(FILE_PHIEU_NHAP);
-            } else if (chon != 0) {
-                System.out.println("Lua chon khong hop le!");
-            }
-        } while (chon != 0);
-    }
     public PhieuNhap[] layDanhSach() { return Arrays.copyOf(ds, soLuong); }
 }
